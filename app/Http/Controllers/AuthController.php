@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AuthRequest;
 use App\Http\Resources\UserResource;
-use App\Services\AuthService;
+use App\Services\AuthServices;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ class AuthController extends Controller
 
     protected $authService;
 
-    public function __construct(AuthService $authService)
+    public function __construct(AuthServices $authService)
     {
         $this->authService = $authService;
     }
@@ -44,6 +44,7 @@ class AuthController extends Controller
         return $this->successResponse([
             'user' => new UserResource($result['user']),
             'token' => $result['token'],
+            'refresh_token' => $result['refresh_token'],
         ], 'Login successful');
     }
 

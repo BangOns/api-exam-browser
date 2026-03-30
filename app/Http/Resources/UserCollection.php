@@ -19,9 +19,7 @@ class UserCollection extends ResourceCollection
             'meta' => [
                 'count' => $this->collection->count(),
             ],
-            // 'links' => [
-            //     'self' => 'link-value',
-            // ],
+
         ];
     }
 }
