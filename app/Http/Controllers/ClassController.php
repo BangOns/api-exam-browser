@@ -2,16 +2,34 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Class\ClassResource;
+use App\Services\ClassService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class ClassController extends Controller
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function __construct(private ClassService $classService) {}
+    public function index(Request $request)
     {
-        //
+        $paginator = $this->classService->getAllClasses(5, $request->query('search', ''));
+        return $this->successResponse(
+            ClassResource::collection($paginator),
+            'Kelas retrieved successfully',
+            200,
+            [
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ]
+            ]
+        );
     }
 
     /**

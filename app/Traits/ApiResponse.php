@@ -12,14 +12,16 @@ trait ApiResponse
      * @param mixed $data
      * @param string|null $message
      * @param int $code
+     * @param array $meta
      * @return JsonResponse
      */
-    protected function successResponse($data = null, ?string $message = null, int $code = 200): JsonResponse
+    protected function successResponse($data = null, ?string $message = null, int $code = 200, $meta = []): JsonResponse
     {
         return response()->json([
             'status' => 'Success',
             'message' => $message,
-            'data' => $data
+            'data' => $data,
+            'meta' => $meta
         ], $code);
     }
 
