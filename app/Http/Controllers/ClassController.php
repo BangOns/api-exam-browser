@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Class\ClassRequest;
 use App\Http\Resources\Class\ClassResource;
 use App\Services\ClassService;
 use App\Traits\ApiResponse;
@@ -32,51 +33,64 @@ class ClassController extends Controller
         );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
+        $class = $this->classService->getClassById($id);
+
+
+
+        return $this->successResponse(
+            new ClassResource($class),
+            'Kelas retrieved successfully',
+            200,
+        );
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * POST /api/classes
+     * Buat kelas baru. Hanya admin.
      */
-    public function edit(string $id)
+    public function store(ClassRequest $request)
     {
-        //
+        $class = $this->classService->createClass($request->validated());
+
+        return $this->successResponse(
+            new ClassResource($class),
+            'Kelas created successfully',
+            201,
+        );
     }
 
     /**
-     * Update the specified resource in storage.
+     * PUT/PATCH /api/classes/{id}
+     * Update kelas. Hanya admin.
      */
-    public function update(Request $request, string $id)
+    public function update(ClassRequest $request, string $id)
     {
-        //
+        $this->classService->updateClass($id, $request->validated());
+
+
+
+        return $this->successResponse(
+            null,
+            'Kelas updated successfully',
+            200,
+        );
     }
 
     /**
-     * Remove the specified resource from storage.
+     * DELETE /api/classes/{id}
+     * Hapus kelas. Hanya admin.
      */
     public function destroy(string $id)
     {
-        //
+        $this->classService->deleteClass($id);
+
+
+        return $this->successResponse(
+            null,
+            'Kelas deleted successfully',
+            200,
+        );
     }
 }

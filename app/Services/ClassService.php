@@ -2,58 +2,118 @@
 
 namespace App\Services;
 
+use App\Exceptions\DataNotFound;
 use App\Models\Classes;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 
 class ClassService
 {
-    /**
-     * Create a new class instance.
-     */
+    // Durasi cache dalam detik
+    private const CACHE_TTL     = 60;
+
+    // Batas maksimum item per halaman
+    private const MAX_PER_PAGE  = 100;
+
+    // Prefix cache untuk list — mudah di-flush sekaligus
+    private const CACHE_LIST_PREFIX = 'class.list';
+
+    // =========================================================================
+    // Read
+    // =========================================================================
+
     public function getAllClasses(int $perPage = 5, string $search = ''): LengthAwarePaginator
     {
-        return Cache::remember("class.list.{$search}.{$perPage}", 60, function () use ($perPage, $search) {
-            $query = Classes::when($search, function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            });
-            return $query->paginate($perPage);
+        // Batasi perPage agar tidak bisa di-abuse
+        $perPage = min($perPage, self::MAX_PER_PAGE);
+
+        $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
+            return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+                ->paginate($perPage);
         });
     }
 
     public function getClassById(string $id): ?Classes
     {
-        return Cache::remember("class.{$id}", 60, function () use ($id) {
+        return Cache::remember("class.{$id}", self::CACHE_TTL, function () use ($id) {
             return Classes::find($id);
         });
     }
 
+    // =========================================================================
+    // Write
+    // =========================================================================
+
     public function createClass(array $data): Classes
     {
-
         $class = Classes::create([
-            'name' => $data['name'],
-            'level' => $data['level'],
+            'name'       => $data['name'],
+            'level'      => $data['level'],
             'department' => $data['department'],
         ]);
+
+
+        // Invalidate semua cache list agar data baru langsung muncul
+        $this->flushListCache();
+
         return $class;
     }
 
     public function updateClass(string $id, array $data): bool
     {
-        $class = $this->getClassById($id);
+        // Fetch langsung dari DB — jangan pakai cache untuk operasi write
+        $class = Classes::find($id);
+
         if (!$class) {
-            return false;
+            throw new DataNotFound('Kelas tidak ditemukan');
         }
-        return $class->update($data);
+
+        $updated = Classes::where('id', $id)->update($data);
+        if ($updated) {
+            // Hapus cache spesifik + semua list yang mungkin tampilkan data ini
+            Cache::forget("class.{$id}");
+            $this->flushListCache();
+        }
+
+        return $updated;
     }
 
     public function deleteClass(string $id): bool
     {
-        $class = $this->getClassById($id);
+        // Fetch langsung dari DB
+        $class = Classes::find($id);
+
         if (!$class) {
-            return false;
+            throw new DataNotFound('Kelas tidak ditemukan');
         }
-        return $class->delete();
+
+        $deleted = Classes::where('id', $id)->delete();
+        if ($deleted) {
+            Cache::forget("class.{$id}");
+            $this->flushListCache();
+        }
+
+        return $deleted;
+    }
+
+    // =========================================================================
+    // Private Helpers
+    // =========================================================================
+
+    /**
+     * Hapus semua cache list sekaligus menggunakan cache tags.
+     * Jika driver tidak support tags (misal: file/database),
+     * gunakan Cache::flush() atau ganti driver ke Redis/Memcached.
+     */
+    private function flushListCache(): void
+    {
+        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
+        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
+
+        // Jika pakai driver tanpa tags — flush seluruh cache
+        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
+        Cache::flush();
     }
 }
