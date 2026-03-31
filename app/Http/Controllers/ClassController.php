@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\DataNotFound;
 use App\Http\Requests\Class\ClassRequest;
 use App\Http\Resources\Class\ClassResource;
 use App\Services\ClassService;
@@ -35,13 +36,14 @@ class ClassController extends Controller
 
     public function show(string $id)
     {
+
         $class = $this->classService->getClassById($id);
-
-
-
+        if (!$class) {
+            throw new DataNotFound('Kelas tidak ditemukan');
+        }
         return $this->successResponse(
             new ClassResource($class),
-            'Kelas retrieved successfully',
+            'Kelas retrieved by id successfully',
             200,
         );
     }
@@ -67,9 +69,10 @@ class ClassController extends Controller
      */
     public function update(ClassRequest $request, string $id)
     {
-        $this->classService->updateClass($id, $request->validated());
-
-
+        $class = $this->classService->updateClass($id, $request->validated());
+        if (!$class) {
+            throw new DataNotFound('Kelas tidak ditemukan');
+        }
 
         return $this->successResponse(
             null,
@@ -84,8 +87,10 @@ class ClassController extends Controller
      */
     public function destroy(string $id)
     {
-        $this->classService->deleteClass($id);
-
+        $class = $this->classService->deleteClass($id);
+        if (!$class) {
+            throw new DataNotFound('Kelas tidak ditemukan');
+        }
 
         return $this->successResponse(
             null,

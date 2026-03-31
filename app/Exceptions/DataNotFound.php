@@ -2,16 +2,17 @@
 
 namespace App\Exceptions;
 
+use App\Traits\ApiResponse;
 use Exception;
 
 class DataNotFound extends Exception
 {
+    use ApiResponse;
     public function render($request)
     {
-        return response()->json([
-            'status' => false,
-            'code' => 404,
-            'message' => $this->message ?? 'Data tidak ditemukan.'
-        ], 404);
+        return $this->errorResponse(
+            'Data tidak ditemukan.',
+            404,
+        );
     }
 }

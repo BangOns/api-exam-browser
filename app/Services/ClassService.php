@@ -37,9 +37,15 @@ class ClassService
 
     public function getClassById(string $id): ?Classes
     {
-        return Cache::remember("class.{$id}", self::CACHE_TTL, function () use ($id) {
-            return Classes::find($id);
-        });
+        $data = Cache::remember(
+            "class.{$id}",
+            self::CACHE_TTL,
+            fn() => Classes::query()->find($id)?->toArray()
+        );
+
+        return $data
+            ? Classes::hydrate([$data])->first()
+            : null;
     }
 
     // =========================================================================
@@ -48,11 +54,7 @@ class ClassService
 
     public function createClass(array $data): Classes
     {
-        $class = Classes::create([
-            'name'       => $data['name'],
-            'level'      => $data['level'],
-            'department' => $data['department'],
-        ]);
+        $class = Classes::create($data);
 
 
         // Invalidate semua cache list agar data baru langsung muncul
