@@ -2,63 +2,101 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\DataNotFound;
+use App\Http\Requests\Student\StudentRequest;
+use App\Http\Requests\Student\StudentRequestUpdate;
+use App\Http\Resources\Student\StudentResource;
+use App\Services\StudentService;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function __construct(private StudentService $studentService) {}
+    public function index(Request $request)
     {
-        //
+        $paginator = $this->studentService->getAllStudents(5, $request->query('search', ''));
+        return $this->successResponse(
+            StudentResource::collection($paginator),
+            'Student retrieved successfully',
+            200,
+            [
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page' => $paginator->lastPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                ]
+            ]
+        );
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
-        //
+
+        $student = $this->studentService->getStudentById($id);
+        if (!$student) {
+            throw new DataNotFound('Student tidak ditemukan');
+        }
+        return $this->successResponse(
+            new StudentResource($student),
+            'Student retrieved by id successfully',
+            200,
+        );
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * POST /api/classes
+     * Buat kelas baru. Hanya admin.
      */
-    public function edit(string $id)
+    public function store(StudentRequest $request)
     {
-        //
+        $student = $this->studentService->createStudent($request->validated());
+
+        return $this->successResponse(
+            new StudentResource($student),
+            'Teacher created successfully',
+            201,
+        );
     }
 
     /**
-     * Update the specified resource in storage.
+     * PUT/PATCH /api/classes/{id}
+     * Update kelas. Hanya admin.
      */
-    public function update(Request $request, string $id)
+    public function update(StudentRequestUpdate $request, string $id)
     {
-        //
+        $student = $this->studentService->updateStudent($id, $request->validated());
+        if (!$student) {
+            throw new DataNotFound('Student tidak ditemukan');
+        }
+
+        return $this->successResponse(
+            null,
+            'Teacher updated successfully',
+            200,
+        );
     }
 
     /**
-     * Remove the specified resource from storage.
+     * DELETE /api/classes/{id}
+     * Hapus kelas. Hanya admin.
      */
     public function destroy(string $id)
     {
-        //
+        $student = $this->studentService->deleteStudent($id);
+        if (!$student) {
+            throw new DataNotFound('Student tidak ditemukan');
+        }
+
+        return $this->successResponse(
+            null,
+            'Teacher deleted successfully',
+            200,
+        );
     }
 }

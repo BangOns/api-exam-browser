@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Requests\Teacher;
+namespace App\Http\Requests\Student;
 
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\ValidationException;
 
-class TeacherRequest extends FormRequest
+class StudentRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,12 +25,11 @@ class TeacherRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'full_name' => 'required|string|max:255',
-            'username'  => 'required|string|max:255|unique:users,username',
-            'password'  => 'required|string|min:8',
-            "nip"       => "required|unique:teachers,nip",
-            'class_id'  => 'nullable|array',
-            'class_id.*' => 'exists:classes,id',
+            "full_name" => "required|string|max:255",
+            "username" => "required|string|max:255|unique:users,username",
+            "password" => "required|string|min:8",
+            "nisn" => "required|unique:students,nisn",
+            "class_id" => "nullable|exists:classes,id",
         ];
     }
 
@@ -40,7 +39,7 @@ class TeacherRequest extends FormRequest
             "full_name" => "Nama Lengkap",
             "username" => "Username",
             "password" => "Password",
-            "nip" => "NIP",
+            "nisn" => "NISN",
             "class_id" => "Kelas",
         ];
     }

@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 
 class Student extends Model
 {
+    protected $fillable = ['user_id', 'nis', 'class_id'];
     protected $table = "students";
     protected $keyType = 'string';
     public $incrementing = false;

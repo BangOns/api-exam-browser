@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('students', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreignUuid('class_id')->references('id')->on('classes')->onDelete('cascade');
+            $table->foreignUuid('class_id')->nullable()->constrained('classes')->onDelete('set null');
             $table->string('nisn')->unique();
             $table->timestamps();
         });

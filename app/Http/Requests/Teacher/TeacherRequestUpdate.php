@@ -29,6 +29,8 @@ class TeacherRequestUpdate extends FormRequest
             'username'  => 'required|string|max:255',
             'password'  => 'required|string|min:8',
             "nip"       => "required",
+            'class_id'  => 'nullable|array',
+            'class_id.*' => 'exists:classes,id',
         ];
     }
 
@@ -39,6 +41,7 @@ class TeacherRequestUpdate extends FormRequest
             "username" => "Username",
             "password" => "Password",
             "nip" => "NIP",
+            "class_id" => "Kelas",
         ];
     }
     public function messages(): array
@@ -50,6 +53,8 @@ class TeacherRequestUpdate extends FormRequest
             "in" => ":attribute must be one of: admin, student, teacher",
             "min" => ":attribute must be at least 8 characters",
             "max" => ":attribute must be at most 255 characters",
+            "array" => ":attribute must be an array",
+
         ];
     }
 
