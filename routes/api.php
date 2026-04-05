@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassController;
+use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use Illuminate\Http\Request;
@@ -23,6 +24,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::apiResource('class', ClassController::class);
                 Route::apiResource('teacher', TeacherController::class);
                 Route::apiResource('student', StudentController::class);
+            });
+            Route::middleware(['ability:role:teacher'])->group(function () {
+                Route::apiResource('question', QuestionController::class);
+            });
+            Route::middleware(['ability:role:teacher', 'ability:role:admin'])->group(function () {
+                // exam;
             });
             Route::get('/user', function (Request $request) {
                 return $request->user();

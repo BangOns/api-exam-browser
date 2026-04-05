@@ -6,6 +6,7 @@ use App\Exceptions\DataNotFound;
 use App\Models\Classes;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class ClassService
 {
@@ -63,9 +64,9 @@ class ClassService
 
     public function createClass(array $data): Classes
     {
-        $class = Classes::create($data);
-
-
+        $class = DB::transaction(function () use ($data) {
+            return Classes::create($data);
+        });
         // Invalidate semua cache list agar data baru langsung muncul
         $this->flushListCache();
 
@@ -80,8 +81,9 @@ class ClassService
         if (!$class) {
             throw new DataNotFound('Kelas tidak ditemukan');
         }
-
-        $updated = Classes::where('id', $id)->update($data);
+        $updated = DB::transaction(function () use ($id, $data) {
+            return Classes::where('id', $id)->update($data);
+        });
         if ($updated) {
             // Hapus cache spesifik + semua list yang mungkin tampilkan data ini
             Cache::forget("class.{$id}");

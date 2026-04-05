@@ -13,15 +13,13 @@ return new class extends Migration
     {
         Schema::create('exam_questions', function (Blueprint $table) {
             $table->foreignUuid('exam_id')
-                ->constrained('exams')
+                ->constrained('exams')->onUpdate('cascade')
                 ->cascadeOnDelete();
 
             $table->foreignUuid('question_id')
-                ->constrained('questions')
-                ->restrictOnDelete();
-
-            $table->unsignedInteger('order')->nullable(); // urutan soal
-
+                ->constrained('questions')->onUpdate('cascade')
+                ->onDelete('cascade');
+            $table->timestamps();
             $table->primary(['exam_id', 'question_id']);
         });
     }

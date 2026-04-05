@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Lesson extends Model
@@ -40,5 +41,9 @@ class Lesson extends Model
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+    public function question(): HasMany
+    {
+        return $this->hasMany(Question::class);
     }
 }
