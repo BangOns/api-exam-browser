@@ -59,7 +59,7 @@ class StudentController extends Controller
 
         return $this->successResponse(
             new StudentResource($student),
-            'Teacher created successfully',
+            'Student created successfully',
             201,
         );
     }
@@ -77,7 +77,7 @@ class StudentController extends Controller
 
         return $this->successResponse(
             null,
-            'Teacher updated successfully',
+            'Student updated successfully',
             200,
         );
     }
@@ -95,7 +95,7 @@ class StudentController extends Controller
 
         return $this->successResponse(
             null,
-            'Teacher deleted successfully',
+            'Student deleted successfully',
             200,
         );
     }

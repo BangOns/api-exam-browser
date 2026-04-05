@@ -28,13 +28,8 @@ class Classes extends Model
     {
         return $this->hasMany(Student::class);
     }
-    public function teachers(): BelongsToMany
+    public function lessons(): HasMany
     {
-        return $this->belongsToMany(
-            Teacher::class,       // model teacher
-            'teacher_classes',    // pivot table
-            'class_id',           // FK di pivot table untuk class
-            'teacher_id'          // FK di pivot table untuk teacher
-        );
+        return $this->hasMany(Lesson::class);
     }
 }

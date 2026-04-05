@@ -25,29 +25,47 @@ class StudentService
     // =========================================================================
     // Read
     // =========================================================================
+    // public function getAllStudents(int $perPage = 5, string $search = ''): LengthAwarePaginator
+    // {
+    //     $perPage = min($perPage, self::MAX_PER_PAGE);
+    //     $page = request()->input('page', 1);
+
+    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}.{$page}";
+
+    //     $students = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search, $page) {
+    //         $query = Student::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"));
+
+    //         return [
+    //             'data'  => (clone $query)->forPage($page, $perPage)->get(),
+    //             'total' => (clone $query)->count(),
+    //         ];
+    //     });
+
+    //     return new LengthAwarePaginator(
+    //         $students['data'],
+    //         $students['total'],
+    //         $perPage,
+    //         $page,
+    //         ['path' => request()->url(), 'query' => request()->query()]
+    //     );
+    // }
     public function getAllStudents(int $perPage = 5, string $search = ''): LengthAwarePaginator
     {
-        // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
-
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
-            return Student::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-                ->paginate($perPage);
-        });
+        return Student::with('user', 'class')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+            ->paginate($perPage);
     }
-
     public function getStudentById(string $id): ?Student
     {
         $data = Cache::remember(
             "student.{$id}",
             self::CACHE_TTL,
-            fn() => Student::query()->where('user_id', $id)->first()?->toArray()
+            fn() => Student::with('user', 'class')->where('user_id', $id)->first()?->toArray()
         );
 
         return $data
-            ? Teacher::hydrate([$data])->first()
+            ? Student::hydrate([$data])->first()
             : null;
     }
 
@@ -69,11 +87,10 @@ class StudentService
             $student = Student::create([
                 'user_id' => $user->id,
                 'nisn' => $data['nisn'],
+                'class_id' => $data['class_id'] ?? null,
             ]);
 
-            if (!empty($data['class_id'])) {
-                $student->classes()->sync($data['class_id']);
-            }
+
 
             return $student;
         });
@@ -97,7 +114,8 @@ class StudentService
         DB::transaction(function () use ($student, $studentData) {
             // Update teacher table
             $student->update([
-                'nis' => $studentData['nis'] ?? $student->nis,
+                'nisn' => $studentData['nisn'] ?? $student->nisn,
+                'class_id' => $studentData['class_id'] ?? null,
             ]);
 
             // Update related user table
@@ -111,13 +129,14 @@ class StudentService
                     'username' => $userData['username'] ?? $student->user->username,
                     'password' => $userData['password'] ?? $student->user->password,
                     'role' => 'student'
+
                 ]);
             }
 
             // Update pivot teacher_classes jika ada classIds
-            if (!empty($studentData['class_id'])) {
-                $student->classes()->sync($studentData['class_id']);
-            }
+            // if (!empty($studentData['class_id'])) {
+            //     $student->classes()->sync($studentData['class_id']);
+            // }
         });
 
         // Hapus cache
@@ -125,7 +144,7 @@ class StudentService
         $this->flushListCache();
 
         // Load user + classes untuk response
-        return $student->load('user', 'classes');
+        return $student->load('user', 'class');
     }
 
     public function deleteStudent(string $id): Student

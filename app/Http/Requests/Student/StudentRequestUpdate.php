@@ -5,6 +5,7 @@ namespace App\Http\Requests\Student;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class StudentRequestUpdate extends FormRequest
@@ -24,11 +25,22 @@ class StudentRequestUpdate extends FormRequest
      */
     public function rules(): array
     {
+
         return [
             "full_name" => "required|string|max:255",
-            "username" => "required|string|max:255|unique:users,username",
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+
+            ],
             "password" => "required|string|min:8",
-            "nisn" => "required|unique:students,nisn",
+            "nisn" => [
+                "required",
+                "string",
+                "max:10",
+
+            ],
             "class_id" => "nullable|exists:classes,id",
         ];
     }

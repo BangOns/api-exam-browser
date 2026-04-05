@@ -15,6 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreignUuid('class_id')->nullable()->constrained('classes')->onDelete('set null');
+            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
             $table->string('nisn')->unique();
             $table->timestamps();
         });

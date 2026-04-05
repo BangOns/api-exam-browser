@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\DataNotFound;
+use App\Models\Lesson;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -29,13 +30,23 @@ class TeacherService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
-            return Teacher::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-                ->paginate($perPage);
-        });
+        return Teacher::with('user', 'lessons')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+            ->paginate($perPage);
     }
+    // // =========================================================================
+    // public function getAllTeachers(int $perPage = 5, string $search = ''): LengthAwarePaginator
+    // {
+    //     // Batasi perPage agar tidak bisa di-abuse
+    //     $perPage = min($perPage, self::MAX_PER_PAGE);
+
+    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
+
+    //     return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
+    //         return Teacher::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+    //             ->paginate($perPage);
+    //     });
+    // }
 
     public function getTeacherById(string $id): ?Teacher
     {
@@ -69,8 +80,14 @@ class TeacherService
                 'nip' => $data['nip'],
             ]);
 
-            if (!empty($data['class_id'])) {
-                $teacher->classes()->sync($data['class_id']);
+            if (!empty($data['lessons'])) {
+                foreach ($data['lessons'] as $lesson) {
+                    $teacher->lessons()->create([
+                        'teacher_id' => $teacher->id,
+                        'class_id' => $lesson['class_id'],
+                        'subject_id' => $lesson['subject_id'],
+                    ]);
+                }
             }
 
             return $teacher;
@@ -93,17 +110,18 @@ class TeacherService
         }
 
         DB::transaction(function () use ($teacher, $teacherData) {
-            // Update teacher table
+            // 1. Update teacher table
             $teacher->update([
                 'nip' => $teacherData['nip'] ?? $teacher->nip,
             ]);
 
-            // Update related user table
+            // 2. Update related user table
             if (isset($teacherData['full_name']) || isset($teacherData['username']) || isset($teacherData['password'])) {
                 $userData = [];
                 if (isset($teacherData['full_name'])) $userData['full_name'] = $teacherData['full_name'];
                 if (isset($teacherData['username'])) $userData['username'] = $teacherData['username'];
                 if (isset($teacherData['password'])) $userData['password'] = Hash::make($teacherData['password']);
+
                 User::where('id', $teacher->user_id)->update([
                     'full_name' => $userData['full_name'] ?? $teacher->user->full_name,
                     'username' => $userData['username'] ?? $teacher->user->username,
@@ -112,9 +130,19 @@ class TeacherService
                 ]);
             }
 
-            // Update pivot teacher_classes jika ada classIds
-            if (!empty($teacherData['class_id'])) {
-                $teacher->classes()->sync($teacherData['class_id']);
+            // 3. Update pivot teacher_classes (perbaikan)
+            if (!empty($teacherData['lessons'])) {
+                // Hapus data lama
+                Lesson::where('teacher_id', $teacher->id)->delete();
+
+                // Buat data baru
+                foreach ($teacherData['lessons'] as $lesson) {
+                    $teacher->lessons()->create([
+                        'teacher_id' => $teacher->id,
+                        'class_id' => $lesson['class_id'],
+                        'subject_id' => $lesson['subject_id'],
+                    ]);
+                }
             }
         });
 
@@ -123,7 +151,7 @@ class TeacherService
         $this->flushListCache();
 
         // Load user + classes untuk response
-        return $teacher->load('user', 'classes');
+        return $teacher->load('user', 'lessons');
     }
 
     public function deleteTeacher(string $id): Teacher

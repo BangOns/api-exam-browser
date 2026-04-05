@@ -29,8 +29,9 @@ class TeacherRequestUpdate extends FormRequest
             'username'  => 'required|string|max:255',
             'password'  => 'required|string|min:8',
             "nip"       => "required",
-            'class_id'  => 'nullable|array',
-            'class_id.*' => 'exists:classes,id',
+            "lessons"   => "nullable|array",
+            "lessons.*.class_id" => "nullable|exists:classes,id",
+            "lessons.*.subject_id" => "required_with:lessons.*.class_id|exists:subjects,id",
         ];
     }
 
@@ -42,6 +43,9 @@ class TeacherRequestUpdate extends FormRequest
             "password" => "Password",
             "nip" => "NIP",
             "class_id" => "Kelas",
+            "lessons" => "Pelajaran",
+            "lessons.*.class_id" => "Kelas",
+            "lessons.*.subject_id" => "Mata Pelajaran",
         ];
     }
     public function messages(): array

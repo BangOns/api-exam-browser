@@ -18,6 +18,14 @@ class TeacherResource extends JsonResource
             "id" => $this->user_id,
             "name" => $this->user->full_name,
             "nip" => $this->nip,
+            'teaching_assignments' => $this->lessons->map(function ($lesson) {
+                return [
+                    'class_id' => $lesson->class->id,
+                    'class_name' => $lesson->class->name,
+                    'subject_id' => $lesson->subject->id,
+                    'subject_name' => $lesson->subject->name,
+                ];
+            }),
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
         ];

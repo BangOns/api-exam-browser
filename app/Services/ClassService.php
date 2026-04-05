@@ -27,13 +27,22 @@ class ClassService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
-            return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-                ->paginate($perPage);
-        });
+        return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+            ->paginate($perPage);
     }
+    // public function getAllClasses(int $perPage = 5, string $search = ''): LengthAwarePaginator
+    // {
+    //     // Batasi perPage agar tidak bisa di-abuse
+    //     $perPage = min($perPage, self::MAX_PER_PAGE);
+
+    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
+
+    //     return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
+    //         return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+    //             ->paginate($perPage);
+    //     });
+    // }
 
     public function getClassById(string $id): ?Classes
     {

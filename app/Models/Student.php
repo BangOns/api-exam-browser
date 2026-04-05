@@ -8,7 +8,8 @@ use Illuminate\Support\Str;
 
 class Student extends Model
 {
-    protected $fillable = ['user_id', 'nis', 'class_id'];
+    protected $fillable = ['user_id', 'class_id', 'nisn'];
+
     protected $table = "students";
     protected $keyType = 'string';
     public $incrementing = false;
@@ -23,10 +24,12 @@ class Student extends Model
             }
         });
     }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
+
     public function class(): BelongsTo
     {
         return $this->belongsTo(Classes::class);

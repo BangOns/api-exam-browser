@@ -3,14 +3,16 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
-class Teacher extends Model
+class Lesson extends Model
 {
-    protected $fillable = ['user_id', 'nip'];
-    protected $table = "teachers";
+    protected $table = "lessons";
+    protected $fillable = [
+        'teacher_id',
+        'class_id',
+        'subject_id',
+    ];
     protected $keyType = 'string';
     public $incrementing = false;
 
@@ -24,12 +26,19 @@ class Teacher extends Model
             }
         });
     }
-    public function user(): BelongsTo
+
+    public function teacher()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Teacher::class);
     }
-    public function lessons()
+
+    public function class()
     {
-        return $this->hasMany(Lesson::class);
+        return $this->belongsTo(Classes::class);
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
     }
 }

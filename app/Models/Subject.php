@@ -2,18 +2,19 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
-class Teacher extends Model
+class Subject extends Model
 {
-    protected $fillable = ['user_id', 'nip'];
-    protected $table = "teachers";
+    use HasUuids;
+    protected $table = "subjects";
+    protected $fillable = [
+        'name',
+    ];
     protected $keyType = 'string';
     public $incrementing = false;
-
     protected static function boot()
     {
         parent::boot();
@@ -24,10 +25,7 @@ class Teacher extends Model
             }
         });
     }
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
+
     public function lessons()
     {
         return $this->hasMany(Lesson::class);
