@@ -34,9 +34,4 @@ class Question extends Model
     {
         return $this->belongsTo(Lesson::class);
     }
-
-    // public function exam()
-    // {
-    //     return $this->belongsToMany(Exam::class, 'exam_questions', 'question_id', 'exam_id');
-    // }
 }

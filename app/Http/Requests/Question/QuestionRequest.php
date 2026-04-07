@@ -26,9 +26,9 @@ class QuestionRequest extends FormRequest
             "question" => "required | string",
             "lesson_id" => "required | exists:lessons,id",
             "type" => "required | in:Multiple Choice,Essay",
-            "options" => "type.required_if:type,Multiple Choice | array",
-            "correct_answer" => "type.required_if:type,Multiple Choice | string",
-            "rubric" => "type.required_if:type,Essay | string",
+            "options" => "nullable | required_if:type,Multiple Choice|array",
+            "correct_answer" => "nullable | required_if:type,Multiple Choice|string",
+            "rubric" => "nullable | required_if:type,Essay|string",
             "max_points" => "required | integer",
         ];
     }
@@ -48,6 +48,7 @@ class QuestionRequest extends FormRequest
     {
         return [
             "required" => ":attribute is required",
+            "required_if" => ":attribute is required",
             "lesson_id.exists" => ":attribute is required",
             "type.in" => ":attribute is required",
             "options.array" => ":attribute is required",

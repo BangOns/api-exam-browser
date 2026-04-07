@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Question\QuestionRequest;
 use App\Http\Resources\Question\QuestionResource;
 use App\Services\QuestionService;
 use App\Traits\ApiResponse;
@@ -31,7 +32,7 @@ class QuestionController extends Controller
             ]
         );
     }
-    public function store(Request $request)
+    public function store(QuestionRequest $request)
     {
         $question = $this->questionService->createQuestion($request->validated());
 
@@ -50,7 +51,7 @@ class QuestionController extends Controller
             200,
         );
     }
-    public function update(Request $request, $id)
+    public function update(QuestionRequest $request, $id)
     {
         $question = $this->questionService->updateQuestion($request->validated(), $id);
         return $this->successResponse(
@@ -63,7 +64,7 @@ class QuestionController extends Controller
     {
         $question = $this->questionService->deleteQuestion($id);
         return $this->successResponse(
-            new QuestionResource($question),
+            $question ? new QuestionResource($question) : null,
             'Question deleted successfully',
             200,
         );

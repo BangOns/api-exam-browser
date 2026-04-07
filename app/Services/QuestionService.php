@@ -41,11 +41,25 @@ class QuestionService
     }
     public function createQuestion(array $data)
     {
+        if ($data['type'] === 'Multiple Choice') {
+            if (empty($data['options']) || empty($data['correct_answer'])) {
+                throw new \Exception('Multiple Choice must have options and correct answer');
+            }
+        }
+
+        if ($data['type'] === 'Essay' && empty($data['rubric'])) {
+            throw new \Exception('Essay must have rubric');
+        }
+        if (isset($data['options'])) {
+            $data['options'] = json_encode($data['options']);
+        }
 
         $question = DB::transaction(function () use ($data) {
             return Question::create($data);
         });
+
         $this->flushListCache();
+
         return $question;
     }
     public function updateQuestion(array $data, $id)
@@ -56,10 +70,27 @@ class QuestionService
             throw new DataNotFound('Pertanyaan tidak ditemukan');
         }
 
+        if ($data['type'] === 'Multiple Choice') {
+            if (empty($data['options']) || empty($data['correct_answer'])) {
+                throw new \Exception('Multiple Choice must have options and correct answer');
+            }
+        }
+
+        if ($data['type'] === 'Essay' && empty($data['rubric'])) {
+            throw new \Exception('Essay must have rubric');
+        }
+
+        if (isset($data['options'])) {
+            $data['options'] = json_encode($data['options']);
+        }
+
         $resultQuestion = DB::transaction(function () use ($data, $question) {
-            return $question->update($data);
+            $question->update($data);
+            return $question->fresh();
         });
+
         $this->flushListCache();
+
         return $resultQuestion;
     }
     public function deleteQuestion($id)
@@ -69,7 +100,8 @@ class QuestionService
             throw new DataNotFound('Pertanyaan tidak ditemukan');
         }
         $resultQuestion = DB::transaction(function () use ($question) {
-            return $question->delete();
+            $question->delete();
+            return $question->fresh();
         });
         $this->flushListCache();
         return $resultQuestion;

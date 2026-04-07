@@ -13,14 +13,10 @@ return new class extends Migration
     {
         Schema::create('exams', function (Blueprint $table) {
             $table->uuid('id')->primary();
-
             $table->string('name');
-            $table->string('subject', 100);
-            $table->string('target_class', 50)->nullable();
+            $table->foreignUuid('subject_id')->constrained('subjects')->onUpdate('cascade')->onDelete('cascade');
+            $table->foreignUuid('class_id')->constrained('classes')->onUpdate('cascade')->onDelete('cascade');
             $table->enum('status', ['Active', 'Scheduled', 'Draft', 'Completed'])->default('Draft');
-            $table->unsignedInteger('students')->default(0);
-            $table->string('token', 50)->unique()->nullable();
-            $table->unsignedInteger('timer')->nullable(); // dalam menit
             $table->timestamps();
         });
     }

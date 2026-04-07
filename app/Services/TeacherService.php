@@ -82,6 +82,7 @@ class TeacherService
 
             if (!empty($data['lessons'])) {
                 foreach ($data['lessons'] as $lesson) {
+
                     $teacher->lessons()->create([
                         'teacher_id' => $teacher->id,
                         'class_id' => $lesson['class_id'],
