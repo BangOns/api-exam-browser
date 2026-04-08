@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamToken;
 use App\Models\StudentExamAttempt;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -43,7 +44,7 @@ class ExamAttemptService
 
             // Membuat token baru
             $newTokenStr = strtoupper(Str::random(6)); // contoh A4B8XY
-            
+
             return ExamToken::create([
                 'exam_id' => $examId,
                 'token' => $newTokenStr,
@@ -62,7 +63,7 @@ class ExamAttemptService
             throw new DataNotFound('Ujian tidak ditemukan');
         }
 
-        return DB::transaction(function () use ($studentId, $examId, $token) {
+        $attemptRequest = DB::transaction(function () use ($studentId, $examId, $token) {
             $activeToken = ExamToken::where('exam_id', $examId)
                 ->where('is_active', true)
                 ->first();
@@ -100,6 +101,8 @@ class ExamAttemptService
 
             return $attempt;
         });
+        $this->flushListCache();
+        return $attemptRequest;
     }
 
     /**
@@ -107,7 +110,7 @@ class ExamAttemptService
      */
     public function exitExam(string $studentId, string $examId): StudentExamAttempt
     {
-        return DB::transaction(function () use ($studentId, $examId) {
+        $attemptRequest = DB::transaction(function () use ($studentId, $examId) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
                 ->where('student_id', $studentId)
                 ->first();
@@ -125,6 +128,8 @@ class ExamAttemptService
 
             return $attempt;
         });
+        $this->flushListCache();
+        return $attemptRequest;
     }
 
     /**
@@ -132,7 +137,7 @@ class ExamAttemptService
      */
     public function submitExam(string $studentId, string $examId): StudentExamAttempt
     {
-        return DB::transaction(function () use ($studentId, $examId) {
+        $attemptRequest = DB::transaction(function () use ($studentId, $examId) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
                 ->where('student_id', $studentId)
                 ->first();
@@ -150,5 +155,16 @@ class ExamAttemptService
 
             return $attempt;
         });
+        $this->flushListCache();
+        return $attemptRequest;
+    }
+    private function flushListCache(): void
+    {
+        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
+        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
+
+        // Jika pakai driver tanpa tags — flush seluruh cache
+        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
+        Cache::flush();
     }
 }
