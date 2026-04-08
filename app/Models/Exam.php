@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Exam extends Model
@@ -43,5 +44,10 @@ class Exam extends Model
     public function questions(): BelongsToMany
     {
         return $this->belongsToMany(Question::class, 'exam_questions', 'exam_id', 'question_id');
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(ExamSchedule::class);
     }
 }

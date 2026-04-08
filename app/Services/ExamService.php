@@ -37,9 +37,16 @@ class ExamService
     }
     public function createExam(array $data)
     {
+
         $exam = DB::transaction(function () use ($data) {
-            return Exam::create($data);
+
+            $examCreate = Exam::create($data);
+            if (isset($data['questions'])) {
+                $examCreate->questions()->sync($data['questions']);
+            }
+            return $examCreate;
         });
+
 
         $this->flushListCache();
 
@@ -56,6 +63,9 @@ class ExamService
 
         $resultExam = DB::transaction(function () use ($data, $exam) {
             $exam->update($data);
+            if (isset($data['questions'])) {
+                $exam->questions()->sync($data['questions']);
+            }
             return $exam->fresh();
         });
 
@@ -71,7 +81,6 @@ class ExamService
         }
         $resultExam = DB::transaction(function () use ($exam) {
             $exam->delete();
-            return $exam->fresh();
         });
         $this->flushListCache();
         return $resultExam;

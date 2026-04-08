@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassController;
+use App\Http\Controllers\ExamController;
+use App\Http\Controllers\ExamScheduleController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
@@ -27,9 +29,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
             Route::middleware(['ability:role:teacher'])->group(function () {
                 Route::apiResource('question', QuestionController::class);
+                Route::apiResource('exam', ExamController::class);
             });
             Route::middleware(['ability:role:teacher', 'ability:role:admin'])->group(function () {
-                // exam;
+                Route::apiResource('exam-schedules', ExamScheduleController::class);
             });
             Route::get('/user', function (Request $request) {
                 return $request->user();

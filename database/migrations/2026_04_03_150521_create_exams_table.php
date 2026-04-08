@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->foreignUuid('subject_id')->constrained('subjects')->onUpdate('cascade')->onDelete('cascade');
             $table->foreignUuid('class_id')->constrained('classes')->onUpdate('cascade')->onDelete('cascade');
-            $table->enum('status', ['Active', 'Scheduled', 'Draft', 'Completed'])->default('Draft');
+            $table->enum('status', ['active', 'scheduled', 'draft', 'completed'])->default('draft');
             $table->timestamps();
         });
     }

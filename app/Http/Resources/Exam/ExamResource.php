@@ -25,14 +25,13 @@ class ExamResource extends JsonResource
                     "id" => $question->id,
                     "type" => $question->type,
                     "question" => $question->question,
-                    "options" => $question->options ?? [],
-                    "answer" => $question->answer ?? null,
+                    "options" => $question->options ? json_decode($question->options) : [],
+                    "answer" => $question->correct_answer ?? null,
                     "rubric" => $question->rubric ?? null,
 
                 ];
             }),
-            "created_at" => $this->created_at,
-            "updated_at" => $this->updated_at,
+
         ];
     }
 }

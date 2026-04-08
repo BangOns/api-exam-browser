@@ -28,7 +28,7 @@ class ExamRequest extends FormRequest
             "class_id" => "required | exists:classes,id",
             "status" => "required|in:draft,active",
             "questions" => "nullable|array",
-            "questions.*.id" => "nullable|exists:questions,id",
+            "questions.*" => "nullable|exists:questions,id",
         ];
     }
     public function attributes()
@@ -39,7 +39,7 @@ class ExamRequest extends FormRequest
             "class_id" => "Class",
             "status" => "Status",
             "questions" => "Soal",
-            "questions.*.id" => "ID Soal",
+            "questions.*" => "ID Soal",
         ];
     }
     public function messages()

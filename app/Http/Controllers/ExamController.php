@@ -17,7 +17,7 @@ class ExamController extends Controller
      */
     public function index(Request $request)
     {
-        $paginator = $this->examService->getAllExams($request->per_page, $request->search);
+        $paginator = $this->examService->getAllExams($request->query('per_page', 5), $request->query('search', ''));
         return $this->successResponse(
             ExamResource::collection($paginator),
             'Data berhasil diambil',
@@ -65,7 +65,7 @@ class ExamController extends Controller
      */
     public function destroy(string $id)
     {
-        $exam = $this->examService->deleteExam($id);
-        return $this->successResponse(new ExamResource($exam) ?? null, 'Data berhasil dihapus', 200);
+        $this->examService->deleteExam($id);
+        return $this->successResponse(null, 'Data berhasil dihapus', 200);
     }
 }
