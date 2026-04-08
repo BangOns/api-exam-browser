@@ -22,6 +22,10 @@ class ExamAttemptService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
+        $examSchedule = ExamSchedule::where('exam_id', $examId)->first();
+        if (!$examSchedule) {
+            throw new DataNotFound('Jadwal ujian tidak ditemukan');
+        }
 
         // Cek apakah ada jadwal ujian yang aktif saat ini
         $now = now();
