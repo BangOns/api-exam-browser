@@ -87,10 +87,10 @@ class ExamScheduleController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
-        $schedule = $this->examScheduleService->deleteSchedule($id);
+        $this->examScheduleService->deleteSchedule($id);
 
         return $this->successResponse(
-            new ExamScheduleResource($schedule),
+            null,
             'Jadwal ujian berhasil dihapus',
             200
         );

@@ -50,4 +50,14 @@ class Exam extends Model
     {
         return $this->hasMany(ExamSchedule::class);
     }
+
+    public function tokens(): HasMany
+    {
+        return $this->hasMany(ExamToken::class);
+    }
+
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(StudentExamAttempt::class);
+    }
 }
