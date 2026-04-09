@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\ExamAttempt;
 
+use App\Http\Resources\ExamAnswer\ExamAnswerResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,12 +17,12 @@ class ExamAttemptResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'exam_id' => $this->exam_id,
-            'student_id' => $this->student_id,
             'status' => $this->status,
             'exit_count' => $this->exit_count,
             'started_at' => $this->started_at,
+            'answers' => ExamAnswerResource::collection($this->whenLoaded('answers')),
             'submitted_at' => $this->submitted_at,
+            'total_score' => $this->total_score,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

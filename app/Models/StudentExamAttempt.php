@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class StudentExamAttempt extends Model
@@ -19,6 +20,8 @@ class StudentExamAttempt extends Model
         'exit_count',
         'started_at',
         'submitted_at',
+        'total_score',
+
     ];
 
     protected $casts = [
@@ -45,5 +48,9 @@ class StudentExamAttempt extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+    public function answers(): HasMany
+    {
+        return $this->hasMany(StudentExamAnswer::class);
     }
 }

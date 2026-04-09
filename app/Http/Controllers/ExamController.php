@@ -68,4 +68,13 @@ class ExamController extends Controller
         $this->examService->deleteExam($id);
         return $this->successResponse(null, 'Data berhasil dihapus', 200);
     }
+
+    /**
+     * Get monitoring data for the specified exam.
+     */
+    public function monitor(string $id)
+    {
+        $monitoringData = $this->examService->monitorExam($id);
+        return $this->successResponse($monitoringData, 'Data monitoring berhasil diambil', 200);
+    }
 }

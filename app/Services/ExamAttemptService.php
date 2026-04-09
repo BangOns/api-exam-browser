@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamToken;
 use App\Models\StudentExamAttempt;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,6 +17,18 @@ class ExamAttemptService
     /**
      * Generate token baru untuk exam, token sebelumnya otomatis non-aktif.
      */
+    private const CACHE_TTL     = 60;
+
+    private const MAX_PER_PAGE = 10;
+    public function getAllClasses(int $perPage = 5, string $search = ''): LengthAwarePaginator
+    {
+        // Batasi perPage agar tidak bisa di-abuse
+        $perPage = min($perPage, self::MAX_PER_PAGE);
+
+
+        return StudentExamAttempt::with('exam', 'answer')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+            ->paginate($perPage);
+    }
     public function generateNewToken(string $examId): ExamToken
     {
         $exam = Exam::find($examId);
@@ -139,9 +152,9 @@ class ExamAttemptService
     /**
      * Student mensubmit ujian
      */
-    public function submitExam(string $studentId, string $examId): StudentExamAttempt
+    public function submitExam(string $studentId, string $examId, array $submittedAnswers = []): StudentExamAttempt
     {
-        $attemptRequest = DB::transaction(function () use ($studentId, $examId) {
+        $attempt = DB::transaction(function () use ($studentId, $examId, $submittedAnswers) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
                 ->where('student_id', $studentId)
                 ->first();
@@ -150,17 +163,37 @@ class ExamAttemptService
                 throw new DataNotFound('Anda belum masuk ke ujian ini');
             }
 
-            if ($attempt->status !== 'Submitted') {
-                $attempt->update([
-                    'status' => 'Submitted',
-                    'submitted_at' => now()
-                ]);
+            if ($attempt->status === 'Submitted') {
+                return $attempt; // sudah submit, tidak perlu proses lagi
             }
+
+            // Simpan seluruh jawaban yang dipassing (Bulk Submit dari Strategy B)
+            $examAnswerService = app(ExamAnswerService::class);
+            foreach ($submittedAnswers as $entry) {
+                if (isset($entry['question_id']) && isset($entry['answer'])) {
+                    $examAnswerService->saveAnswer($attempt->id, $entry['question_id'], $entry['answer']);
+                }
+            }
+
+            // Ambil semua jawaban (yang sudah dihitung score-nya otomatis oleh ExamAnswerService)
+            $answers = $attempt->answers()->with('question')->get();
+
+            // Total dari skor (essay biarkan 0 jika belum dinilai, karena saveAnswer default max 0 bila essay)
+            $totalScore = $answers->sum('score');
+
+            // Update attempt
+            $attempt->update([
+                'status' => 'Submitted',
+                'submitted_at' => now(),
+                'total_score' => $totalScore
+            ]);
 
             return $attempt;
         });
+
         $this->flushListCache();
-        return $attemptRequest;
+
+        return $attempt;
     }
     private function flushListCache(): void
     {

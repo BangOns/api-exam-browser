@@ -41,6 +41,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
             Route::middleware(['ability:role:teacher,role:admin'])->group(function () {
                 Route::apiResource('exam-schedules', ExamScheduleController::class);
+                Route::get('exams/{exam}/monitor', [ExamController::class, 'monitor']);
             });
             Route::get('/user', function (Request $request) {
                 return $request->user();

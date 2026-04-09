@@ -19,6 +19,8 @@ return new class extends Migration
             $table->integer('exit_count')->default(0);
             $table->timestamp('started_at')->nullable();
             $table->timestamp('submitted_at')->nullable();
+            $table->integer('total_score')->default(0)->after('exit_count');
+
             $table->timestamps();
 
             $table->foreign('exam_id')->references('id')->on('exams')->onDelete('cascade');

@@ -18,7 +18,7 @@ class ExamAttemptController extends Controller
     {
         try {
             $studentId = $request->user()->student->id;
-            
+
             $attempt = $this->examAttemptService->enterExam(
                 $studentId,
                 $examId,
@@ -36,7 +36,7 @@ class ExamAttemptController extends Controller
     {
         try {
             $studentId = $request->user()->student->id;
-            
+
             $attempt = $this->examAttemptService->exitExam($studentId, $examId);
 
             return $this->successResponse(new ExamAttemptResource($attempt), 'Berhasil keluar dari ujian (status disimpan)', 200);
@@ -49,9 +49,15 @@ class ExamAttemptController extends Controller
     public function submit(Request $request, string $examId)
     {
         try {
+            $validated = $request->validate([
+                'answers' => 'nullable|array',
+                'answers.*.question_id' => 'required|string',
+                'answers.*.answer' => 'required|string',
+            ]);
+
             $studentId = $request->user()->student->id;
-            
-            $attempt = $this->examAttemptService->submitExam($studentId, $examId);
+
+            $attempt = $this->examAttemptService->submitExam($studentId, $examId, $validated['answers'] ?? []);
 
             return $this->successResponse(new ExamAttemptResource($attempt), 'Ujian berhasil disubmit', 200);
         } catch (\Exception $e) {

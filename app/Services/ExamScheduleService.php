@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\DataNotFound;
+use App\Models\Exam;
 use App\Models\ExamSchedule;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -35,8 +36,20 @@ class ExamScheduleService
 
     public function createSchedule(array $data): ExamSchedule
     {
-        $scheduleRequest = DB::transaction(function () use ($data) {
-            return ExamSchedule::create($data);
+        $exam = Exam::where('id', $data['exam_id'])->first();
+        if (!$exam) {
+            throw new DataNotFound('Ujian tidak ditemukan');
+        }
+
+        $scheduleRequest = DB::transaction(function () use ($data, $exam) {
+            // Kita pastikan default status jadwal yang baru dibuat adalah 'scheduled'
+            $data['status'] = $data['status'] ?? 'scheduled';
+            $schedule = ExamSchedule::create($data);
+            
+            // Note: $exam->update(['status' => 'scheduled']); dihapus
+            // karena sekarang 1 Exam bisa punya banyak jadwal
+            
+            return $schedule->fresh('exam');
         });
         $this->flushListCache();
         return $scheduleRequest;

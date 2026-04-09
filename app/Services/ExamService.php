@@ -94,4 +94,74 @@ class ExamService
         // (pertimbangkan ganti ke Redis agar tidak flush semua data)
         Cache::flush();
     }
+
+    public function monitorExam(string $id)
+    {
+        $exam = Exam::with(['class.students', 'attempts.student'])
+            ->where('id', $id)
+            ->first();
+
+        if (!$exam) {
+            throw new DataNotFound('Ujian tidak ditemukan');
+        }
+
+        $allStudents = $exam->class->students;
+        $attempts = $exam->attempts;
+
+        $attemptedStudentIds = $attempts->pluck('student_id')->toArray();
+
+        $belumMasuk = $allStudents->whereNotIn('id', $attemptedStudentIds)->values();
+        
+        $sedangMengerjakan = $attempts->where('status', 'In Progress')->values();
+        $selesai = $attempts->where('status', 'Submitted')->values();
+        $pelanggaran = $attempts->where('exit_count', '>', 0)->values();
+        $exited = $attempts->where('status', 'Exited')->values();
+
+        return [
+            'summary' => [
+                'total_students' => $allStudents->count(),
+                'belum_masuk_count' => $belumMasuk->count(),
+                'in_progress_count' => $sedangMengerjakan->count(),
+                'selesai_count' => $selesai->count(),
+                'pelanggaran_count' => $pelanggaran->count(),
+            ],
+            'belum_masuk' => $belumMasuk,
+            'sedang_mengerjakan' => $sedangMengerjakan->map(function ($attempt) {
+                return [
+                    'attempt_id' => $attempt->id,
+                    'student' => $attempt->student,
+                    'status' => $attempt->status,
+                    'exit_count' => $attempt->exit_count,
+                    'started_at' => $attempt->started_at,
+                ];
+            }),
+            'selesai' => $selesai->map(function ($attempt) {
+                return [
+                    'attempt_id' => $attempt->id,
+                    'student' => $attempt->student,
+                    'status' => $attempt->status,
+                    'exit_count' => $attempt->exit_count,
+                    'started_at' => $attempt->started_at,
+                    'submitted_at' => $attempt->submitted_at,
+                ];
+            }),
+            'exited' => $exited->map(function ($attempt) {
+                return [
+                    'attempt_id' => $attempt->id,
+                    'student' => $attempt->student,
+                    'status' => $attempt->status,
+                    'exit_count' => $attempt->exit_count,
+                    'started_at' => $attempt->started_at,
+                ];
+            }),
+            'pelanggaran' => $pelanggaran->map(function ($attempt) {
+                return [
+                    'attempt_id' => $attempt->id,
+                    'student' => $attempt->student,
+                    'status' => $attempt->status,
+                    'exit_count' => $attempt->exit_count,
+                ];
+            }),
+        ];
+    }
 }
