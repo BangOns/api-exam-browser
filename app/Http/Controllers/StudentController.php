@@ -6,6 +6,7 @@ use App\Exceptions\DataNotFound;
 use App\Http\Requests\Student\StudentRequest;
 use App\Http\Requests\Student\StudentRequestUpdate;
 use App\Http\Resources\Student\StudentResource;
+use App\Services\ActivityLogService;
 use App\Services\StudentService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,10 @@ class StudentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function __construct(private StudentService $studentService) {}
+    public function __construct(
+        private StudentService $studentService,
+        private ActivityLogService $activityLogService
+    ) {}
     public function index(Request $request)
     {
         $paginator = $this->studentService->getAllStudents(5, $request->query('search', ''));
@@ -57,6 +61,8 @@ class StudentController extends Controller
     {
         $student = $this->studentService->createStudent($request->validated());
 
+        $this->activityLogService->log($request->user(), "create", 'Student');
+
         return $this->successResponse(
             new StudentResource($student),
             'Student created successfully',
@@ -75,6 +81,8 @@ class StudentController extends Controller
             throw new DataNotFound('Student tidak ditemukan');
         }
 
+        $this->activityLogService->log($request->user(), "update", 'Student');
+
         return $this->successResponse(
             null,
             'Student updated successfully',
@@ -86,12 +94,14 @@ class StudentController extends Controller
      * DELETE /api/classes/{id}
      * Hapus kelas. Hanya admin.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $student = $this->studentService->deleteStudent($id);
         if (!$student) {
             throw new DataNotFound('Student tidak ditemukan');
         }
+
+        $this->activityLogService->log($request->user(), "delete", 'Student');
 
         return $this->successResponse(
             null,

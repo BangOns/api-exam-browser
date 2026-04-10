@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Exam\ExamRequest;
 use App\Http\Resources\Exam\ExamResource;
+use App\Services\ActivityLogService;
 use App\Services\ExamService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -11,7 +12,10 @@ use Illuminate\Http\Request;
 class ExamController extends Controller
 {
     use ApiResponse;
-    public function __construct(private ExamService $examService) {}
+    public function __construct(
+        private ExamService $examService,
+        private ActivityLogService $activityLogService
+    ) {}
     /**
      * Display a listing of the resource.
      */
@@ -39,6 +43,9 @@ class ExamController extends Controller
     public function store(ExamRequest $request)
     {
         $exam = $this->examService->createExam($request->validated());
+
+        $this->activityLogService->log($request->user(), "create", 'Exam');
+
         return $this->successResponse(new ExamResource($exam), 'Data berhasil ditambahkan', 201);
     }
 
@@ -57,15 +64,22 @@ class ExamController extends Controller
     public function update(ExamRequest $request, string $id)
     {
         $exam = $this->examService->updateExam($request->validated(), $id);
+
+        $this->activityLogService->log($request->user(), "update", 'Exam');
+
         return $this->successResponse(new ExamResource($exam), 'Data berhasil diupdate', 200);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
+        $exam = $this->examService->getExamById($id);
         $this->examService->deleteExam($id);
+
+        $this->activityLogService->log($request->user(), "delete", 'Exam');
+
         return $this->successResponse(null, 'Data berhasil dihapus', 200);
     }
 

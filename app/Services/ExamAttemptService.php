@@ -82,56 +82,50 @@ class ExamAttemptService
         }
         $configSecure = app(SecurityConfigService::class)->build();
 
-        $attemptRequest = DB::transaction(function () use ($studentId, $examId, $token, $configSecure) {
+        return DB::transaction(function () use ($studentId, $examId, $token, $configSecure) {
             $activeToken = ExamToken::where('exam_id', $examId)
                 ->where('is_active', true)
                 ->first();
 
             if (!$activeToken || $activeToken->token !== $token) {
-                // Return generic error or we can throw custom Exception
                 throw new \Exception('Token ujian tidak valid atau sudah kadaluarsa', 400);
             }
 
-            $attempt = StudentExamAttempt::where('exam_id', $examId)
-                ->where('student_id', $studentId)
-                ->first();
-
-            if (!$attempt) {
-                // Belum ada attempt, buat baru
-                return StudentExamAttempt::create([
-                    'exam_id' => $examId,
-                    'student_id' => $studentId,
+            // Gunakan firstOrCreate untuk menangani race condition secara atomik
+            // (Dipadukan dengan Unique Constraint di DB)
+            $attempt = StudentExamAttempt::firstOrCreate(
+                ['exam_id' => $examId, 'student_id' => $studentId],
+                [
                     'status' => 'In Progress',
                     'started_at' => now(),
                     'security_config' => $configSecure,
+                ]
+            );
 
-                ]);
+            // Jika attempt baru saja dibuat (wasRecentlyCreated), return langsung
+            if ($attempt->wasRecentlyCreated) {
+                return $attempt;
             }
 
-            // Jika sudah ada
+            // Jika attempt sudah ada, cek statusnya
             if ($attempt->status === 'Submitted') {
                 throw new \Exception('Anda sudah menyelesaikan ujian ini dan tidak bisa masuk kembali.', 403);
             }
 
             if ($attempt->status === 'Exited') {
-                // Lanjutkan ujian, ubah status ke In Progress (wajib input token baru karena sudah tervalidasi di atas)
-                $attempt->update([
-                    'status' => 'In Progress'
-                ]);
+                $attempt->update(['status' => 'In Progress']);
             }
 
             return $attempt;
         });
-        $this->flushListCache();
-        return $attemptRequest;
     }
 
     /**
      * Student keluar dari ujian (sengaja/tidak sengaja)
      */
-    public function exitExam(string $studentId, string $examId): StudentExamAttempt
+    public function exitExam(string $studentId, string $examId, string $type): StudentExamAttempt
     {
-        $attemptRequest = DB::transaction(function () use ($studentId, $examId) {
+        $attemptRequest = DB::transaction(function () use ($studentId, $examId, $type) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
                 ->where('student_id', $studentId)
                 ->first();
@@ -139,6 +133,7 @@ class ExamAttemptService
             if (!$attempt) {
                 throw new DataNotFound('Anda belum masuk ke ujian ini');
             }
+            app(ExamViolationsService::class)->handleViolation($attempt, $type);
 
             if ($attempt->status === 'In Progress') {
                 $attempt->update([
@@ -149,14 +144,13 @@ class ExamAttemptService
 
             return $attempt;
         });
-        $this->flushListCache();
         return $attemptRequest;
     }
 
     /**
      * Student mensubmit ujian
      */
-    public function submitExam(string $studentId, string $examId, array $submittedAnswers = []): StudentExamAttempt
+    public function submitExam(string $studentId, string $examId, array $submittedAnswers = [])
     {
         $attempt = DB::transaction(function () use ($studentId, $examId, $submittedAnswers) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
@@ -190,18 +184,5 @@ class ExamAttemptService
 
             return $attempt;
         });
-
-        $this->flushListCache();
-
-        return $attempt;
-    }
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 }

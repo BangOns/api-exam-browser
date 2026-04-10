@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Question\QuestionRequest;
 use App\Http\Resources\Question\QuestionResource;
+use App\Services\ActivityLogService;
 use App\Services\QuestionService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -14,7 +15,10 @@ class QuestionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function __construct(private QuestionService $questionService) {}
+    public function __construct(
+        private QuestionService $questionService,
+        private ActivityLogService $activityLogService
+    ) {}
     public function index(Request $request)
     {
         $paginator = $this->questionService->getAllQuestions(5, $request->query('search', ''));
@@ -36,6 +40,8 @@ class QuestionController extends Controller
     {
         $question = $this->questionService->createQuestion($request->validated());
 
+        $this->activityLogService->log($request->user(), "create", 'Question');
+
         return $this->successResponse(
             new QuestionResource($question),
             'Question created successfully',
@@ -54,15 +60,22 @@ class QuestionController extends Controller
     public function update(QuestionRequest $request, $id)
     {
         $question = $this->questionService->updateQuestion($request->validated(), $id);
+
+        $this->activityLogService->log($request->user(), "update", 'Question');
+
         return $this->successResponse(
             new QuestionResource($question),
             'Question updated successfully',
             200,
         );
     }
-    public function destroy($id)
+    public function destroy(Request $request, string $id)
     {
-        $question = $this->questionService->deleteQuestion($id);
+        $question = $this->questionService->getQuestionById($id);
+        $this->questionService->deleteQuestion($id);
+
+        $this->activityLogService->log($request->user(), "delete", 'Question');
+
         return $this->successResponse(
             $question ? new QuestionResource($question) : null,
             'Question deleted successfully',

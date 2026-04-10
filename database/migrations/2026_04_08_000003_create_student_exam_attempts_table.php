@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('student_exam_attempts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('exam_id');
-            $table->uuid('student_id');
+            $table->uuid('exam_id')->unique();
+            $table->uuid('student_id')->unique();
             $table->enum('status', ['In Progress', 'Exited', 'Submitted'])->default('In Progress');
             $table->integer('exit_count')->default(0);
             $table->json('security_config')->nullable();

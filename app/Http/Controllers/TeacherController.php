@@ -7,6 +7,7 @@ use App\Http\Requests\Class\ClassRequest;
 use App\Http\Requests\Teacher\TeacherRequest;
 use App\Http\Requests\Teacher\TeacherRequestUpdate;
 use App\Http\Resources\Teacher\TeacherResource;
+use App\Services\ActivityLogService;
 use App\Services\TeacherService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,10 @@ class TeacherController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function __construct(private TeacherService $teacherService) {}
+    public function __construct(
+        private TeacherService $teacherService,
+        private ActivityLogService $activityLogService
+    ) {}
     public function index(Request $request)
     {
         $paginator = $this->teacherService->getAllTeachers(5, $request->query('search', ''));
@@ -58,6 +62,8 @@ class TeacherController extends Controller
     {
         $teacher = $this->teacherService->createTeacher($request->validated());
 
+        $this->activityLogService->log($request->user(), "create", 'Teacher');
+
         return $this->successResponse(
             new TeacherResource($teacher),
             'Teacher created successfully',
@@ -76,6 +82,8 @@ class TeacherController extends Controller
             throw new DataNotFound('Teacher tidak ditemukan');
         }
 
+        $this->activityLogService->log($request->user(), "update", 'Teacher');
+
         return $this->successResponse(
             null,
             'Teacher updated successfully',
@@ -87,12 +95,14 @@ class TeacherController extends Controller
      * DELETE /api/classes/{id}
      * Hapus kelas. Hanya admin.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $teacher = $this->teacherService->deleteTeacher($id);
         if (!$teacher) {
             throw new DataNotFound('Teacher tidak ditemukan');
         }
+
+        $this->activityLogService->log($request->user(), "delete", 'Teacher');
 
         return $this->successResponse(
             null,

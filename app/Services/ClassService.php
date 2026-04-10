@@ -16,8 +16,6 @@ class ClassService
     // Batas maksimum item per halaman
     private const MAX_PER_PAGE  = 100;
 
-    // Prefix cache untuk list — mudah di-flush sekaligus
-    private const CACHE_LIST_PREFIX = 'class.list';
 
     // =========================================================================
     // Read
@@ -32,18 +30,7 @@ class ClassService
         return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
             ->paginate($perPage);
     }
-    // public function getAllClasses(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    // {
-    //     // Batasi perPage agar tidak bisa di-abuse
-    //     $perPage = min($perPage, self::MAX_PER_PAGE);
 
-    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
-
-    //     return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
-    //         return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-    //             ->paginate($perPage);
-    //     });
-    // }
 
     public function getClassById(string $id): ?Classes
     {
@@ -68,7 +55,6 @@ class ClassService
             return Classes::create($data);
         });
         // Invalidate semua cache list agar data baru langsung muncul
-        $this->flushListCache();
 
         return $class;
     }
@@ -87,7 +73,6 @@ class ClassService
         if ($updated) {
             // Hapus cache spesifik + semua list yang mungkin tampilkan data ini
             Cache::forget("class.{$id}");
-            $this->flushListCache();
         }
 
         return $updated;
@@ -105,28 +90,8 @@ class ClassService
         $deleted = Classes::where('id', $id)->delete();
         if ($deleted) {
             Cache::forget("class.{$id}");
-            $this->flushListCache();
         }
 
         return $deleted;
-    }
-
-    // =========================================================================
-    // Private Helpers
-    // =========================================================================
-
-    /**
-     * Hapus semua cache list sekaligus menggunakan cache tags.
-     * Jika driver tidak support tags (misal: file/database),
-     * gunakan Cache::flush() atau ganti driver ke Redis/Memcached.
-     */
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 }

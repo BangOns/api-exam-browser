@@ -6,12 +6,9 @@ use App\Exceptions\DataNotFound;
 use App\Models\Exam;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 class ExamService
 {
-    // Durasi cache dalam detik
-    private const CACHE_TTL     = 60;
 
     // Batas maksimum item per halaman
     private const MAX_PER_PAGE  = 100;
@@ -48,8 +45,6 @@ class ExamService
         });
 
 
-        $this->flushListCache();
-
         return $exam;
     }
     public function updateExam(array $data, $id)
@@ -69,8 +64,6 @@ class ExamService
             return $exam->fresh();
         });
 
-        $this->flushListCache();
-
         return $resultExam;
     }
     public function deleteExam($id)
@@ -82,17 +75,7 @@ class ExamService
         $resultExam = DB::transaction(function () use ($exam) {
             $exam->delete();
         });
-        $this->flushListCache();
         return $resultExam;
-    }
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 
     public function monitorExam(string $id)
@@ -111,7 +94,7 @@ class ExamService
         $attemptedStudentIds = $attempts->pluck('student_id')->toArray();
 
         $belumMasuk = $allStudents->whereNotIn('id', $attemptedStudentIds)->values();
-        
+
         $sedangMengerjakan = $attempts->where('status', 'In Progress')->values();
         $selesai = $attempts->where('status', 'Submitted')->values();
         $pelanggaran = $attempts->where('exit_count', '>', 0)->values();

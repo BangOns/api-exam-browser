@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\DataNotFound;
 use App\Http\Requests\Class\ClassRequest;
 use App\Http\Resources\Class\ClassResource;
+use App\Services\ActivityLogService;
 use App\Services\ClassService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,10 @@ class ClassController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function __construct(private ClassService $classService) {}
+    public function __construct(
+        private ClassService $classService,
+        private ActivityLogService $activityLogService
+    ) {}
     public function index(Request $request)
     {
         $paginator = $this->classService->getAllClasses(5, $request->query('search', ''));
@@ -56,6 +60,8 @@ class ClassController extends Controller
     {
         $class = $this->classService->createClass($request->validated());
 
+        $this->activityLogService->log($request->user(), "create", 'Class');
+
         return $this->successResponse(
             new ClassResource($class),
             'Kelas created successfully',
@@ -74,6 +80,8 @@ class ClassController extends Controller
             throw new DataNotFound('Kelas tidak ditemukan');
         }
 
+        $this->activityLogService->log($request->user(), "update", 'Class');
+
         return $this->successResponse(
             null,
             'Kelas updated successfully',
@@ -85,12 +93,14 @@ class ClassController extends Controller
      * DELETE /api/classes/{id}
      * Hapus kelas. Hanya admin.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $class = $this->classService->deleteClass($id);
         if (!$class) {
             throw new DataNotFound('Kelas tidak ditemukan');
         }
+
+        $this->activityLogService->log($request->user(), "delete", 'Class');
 
         return $this->successResponse(
             null,

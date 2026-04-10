@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Exceptions\DataNotFound;
 use App\Models\Student;
-use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -19,36 +18,10 @@ class StudentService
     // Batas maksimum item per halaman
     private const MAX_PER_PAGE  = 100;
 
-    // Prefix cache untuk list — mudah di-flush sekaligus
-    private const CACHE_LIST_PREFIX = 'student.list';
-
     // =========================================================================
     // Read
     // =========================================================================
-    // public function getAllStudents(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    // {
-    //     $perPage = min($perPage, self::MAX_PER_PAGE);
-    //     $page = request()->input('page', 1);
 
-    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}.{$page}";
-
-    //     $students = Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search, $page) {
-    //         $query = Student::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"));
-
-    //         return [
-    //             'data'  => (clone $query)->forPage($page, $perPage)->get(),
-    //             'total' => (clone $query)->count(),
-    //         ];
-    //     });
-
-    //     return new LengthAwarePaginator(
-    //         $students['data'],
-    //         $students['total'],
-    //         $perPage,
-    //         $page,
-    //         ['path' => request()->url(), 'query' => request()->query()]
-    //     );
-    // }
     public function getAllStudents(int $perPage = 5, string $search = ''): LengthAwarePaginator
     {
         $perPage = min($perPage, self::MAX_PER_PAGE);
@@ -95,8 +68,6 @@ class StudentService
             return $student;
         });
 
-        $this->flushListCache();
-
         return $student;
     }
     public function updateStudent(
@@ -141,7 +112,6 @@ class StudentService
 
         // Hapus cache
         Cache::forget("student.{$id}");
-        $this->flushListCache();
 
         // Load user + classes untuk response
         return $student->load('user', 'class');
@@ -156,27 +126,7 @@ class StudentService
         });
 
         Cache::forget("student.{$id}");
-        $this->flushListCache();
 
         return $student; // return object sebelum dihapus
-    }
-
-    // =========================================================================
-    // Private Helpers
-    // =========================================================================
-
-    /**
-     * Hapus semua cache list sekaligus menggunakan cache tags.
-     * Jika driver tidak support tags (misal: file/database),
-     * gunakan Cache::flush() atau ganti driver ke Redis/Memcached.
-     */
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 }

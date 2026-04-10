@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\User\UserResource;
+use App\Services\ActivityLogService;
 use App\Services\AuthService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -14,12 +15,10 @@ class AuthController extends Controller
 {
     use ApiResponse;
 
-    protected $authService;
-
-    public function __construct(AuthService $authService)
-    {
-        $this->authService = $authService;
-    }
+    public function __construct(
+        private AuthService $authService,
+        private ActivityLogService $activityLogService
+    ) {}
 
     /**
      * Handle user registration.
@@ -27,6 +26,8 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         $user = $this->authService->register($request->validated(), $request->ip(), $request->userAgent());
+
+        $this->activityLogService->log($user['user'], "register", 'Auth');
 
         return $this->successResponse(
             new UserResource($user['user']),
@@ -41,6 +42,8 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $result = $this->authService->login($request->validated(), $request->ip(), $request->userAgent());
+
+        $this->activityLogService->log($result['user'], "login", 'Auth');
 
         return $this->successResponse([
             'user' => new UserResource($result['user']),
@@ -67,7 +70,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $this->authService->logout($request->user(), $request->ip());
+        $user = $request->user();
+        $this->authService->logout($user, $request->ip());
+
+        $this->activityLogService->log($user, "logout", 'Auth');
 
         return $this->successResponse(null, 'Logout successful');
     }

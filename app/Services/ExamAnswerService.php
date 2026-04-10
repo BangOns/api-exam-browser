@@ -6,12 +6,11 @@ use App\Exceptions\DataNotFound;
 use App\Models\Question;
 use App\Models\StudentExamAnswer;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ExamAnswerService
 {
-    private const CACHE_TTL     = 60;
 
     // Batas maksimum item per halaman
     private const MAX_PER_PAGE  = 100;
@@ -55,7 +54,6 @@ class ExamAnswerService
                 ]
             );
         });
-        $this->flushListCache();
         return $studentAnswer;
     }
 
@@ -104,7 +102,7 @@ class ExamAnswerService
 
             // Cek apakah data jawaban sudah ada. Jika ada pakai ID lama, jika belom buat ID baru UUID.
             $existing = $existingAnswers->get($questionId);
-            $id = $existing ? $existing->id : (string) \Illuminate\Support\Str::uuid();
+            $id = $existing ? $existing->id : (string) Str::uuid();
 
             $upserts[] = [
                 'id' => $id,
@@ -129,18 +127,8 @@ class ExamAnswerService
                     ['answer', 'score', 'is_correct', 'answered_at', 'updated_at']
                 );
             });
-            $this->flushListCache();
         }
 
         return $upserts;
-    }
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 }

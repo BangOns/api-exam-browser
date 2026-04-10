@@ -1,0 +1,55 @@
+# Migrasi Aplikasi ke Redis & Optimasi Caching
+
+Dokumen ini memuat rencana untuk mengaktifkan Redis sepenuhnya di aplikasi Anda, mulai dari konfigurasi *environment* hingga refactoring pada level kode supaya fitur andalan Redis (*Cache Tags*) aktif.
+
+## User Review Required
+> [!IMPORTANT]
+> Pastikan service Redis Server (port 6379) di Laragon Anda sudah menyala ya sebelum menyetujui plan ini. Package klien Redis (`predis`) ternyata sudah ter-*install* di proyek Anda, jadi kita hanya butuh mengubah sisi konfigurasi dan logika caching saja.
+
+## Proposed Changes
+
+### Konfigurasi Global & Environment
+Kita akan mengubah default driver dari Laravel agar sepenuhnya bertumpu pada Redis menggantikan sistem *file-based*.
+
+#### [MODIFY] `.env`
+- Mengubah `CACHE_STORE=file` menjadi `CACHE_STORE=redis`
+- Mengubah `QUEUE_CONNECTION=database` menjadi `QUEUE_CONNECTION=redis`
+- Mengubah `SESSION_DRIVER=database` menjadi `SESSION_DRIVER=redis`
+- Memastikan `REDIS_CLIENT=predis` aktif (karena extension PECL phpredis tidak diload di PHP Anda).
+
+---
+
+### Layer Services (Refactoring Mekanisme Flush & Tags)
+Semua fungsi `Cache::flush()` (bom atom yang meyakitkan performa) di seluruh Service akan direkstrukturisasi memanggil *Cache Tags*. Jika tag belum dideklarasikan, maka akan dimasukkan constant prefix baru.
+
+#### [MODIFY] `app/Services/ClassService.php`
+- Menghidupkan kembali sistem `Cache::tags(['class.list'])->remember(...)` untuk fungsi *Read/getAll*.
+- Mengganti `Cache::flush()` dengan `Cache::tags(['class.list'])->flush()`.
+
+#### [MODIFY] `app/Services/StudentService.php`
+- Menghidupkan kembali mekanisme tagging pada list murid.
+- Memperbarui `flushListCache()` ke mode tags.
+
+#### [MODIFY] `app/Services/TeacherService.php`
+- Menghidupkan kembali fungsi `$teacherList` dengan membungkusnya pada Cache.
+- Menerapkan pembatasan hapus cache via *Tags*.
+
+#### [MODIFY] `app/Services/ExamService.php`, `ExamScheduleService.php`, `ExamAttemptService.php`, `ExamAnswerService.php`, `QuestionService.php`
+- Mengganti logika `Cache::flush()` brutal yang ada di *private function flushListCache()* menjadi spesifik `Cache::tags(['NAMA_PREFIX'])->flush()`.
+- Menambahkan constant prefix default jika absen di masing-masing class.
+
+---
+
+### Cache System Setting Layer
+#### [MODIFY] `app/Services/SystemSettingService.php`
+- Memastikan query fetch dari setting keamanan yang kita buat sebelumnya memakai instance cache standard (karena setting berlaku tunggal/global jadi bisa pakai mode keys biasa `Cache::remember`).
+
+## Open Questions
+> [!WARNING]
+> Saat ini di beberapa Service Anda (seperti Student dan Teacher), fungsi *Read Cache* dikomentari (`//`) kemungkinan karena Anda sebelumnya merasa kesulitan / ada bug query di awal saat mencoba Caching. Apakah Anda ingin saya hidupkan kembali (Uncomment) logic cache read otomatis tersebut di Plan ini? Atau cukup memperbaiki fungsi hapusnya dulu biar aman?
+
+## Verification Plan
+### Manual Verification
+- Cek lewat command `php artisan config:clear` dan load ulang API Read (contoh: Class List / Exam List).
+- Saat data baru dibuat (Add Class), lihat seberapa cepat datanya tampil. Response API lama akan dilayani dari memory Redis (kurang dari 10ms loading).
+- Data session saat ini yang ada di database session table akan dinonaktifkan dan diganti ke RAM Redis.

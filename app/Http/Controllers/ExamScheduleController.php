@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ExamSchedule\ExamScheduleRequest;
 use App\Http\Resources\ExamSchedule\ExamScheduleResource;
+use App\Services\ActivityLogService;
 use App\Services\ExamScheduleService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +14,10 @@ class ExamScheduleController extends Controller
 {
     use ApiResponse;
 
-    public function __construct(private ExamScheduleService $examScheduleService) {}
+    public function __construct(
+        private ExamScheduleService $examScheduleService,
+        private ActivityLogService $activityLogService
+    ) {}
 
     /**
      * Display a listing of exam schedules.
@@ -47,6 +51,8 @@ class ExamScheduleController extends Controller
     {
         $schedule = $this->examScheduleService->createSchedule($request->validated());
 
+        $this->activityLogService->log($request->user(), "Created exam schedule for: {$schedule->exam->name}", 'Exam Schedule');
+
         return $this->successResponse(
             new ExamScheduleResource($schedule->load('exam')),
             'Jadwal ujian berhasil ditambahkan',
@@ -75,6 +81,8 @@ class ExamScheduleController extends Controller
     {
         $schedule = $this->examScheduleService->updateSchedule($request->validated(), $id);
 
+        $this->activityLogService->log($request->user(), "Updated exam schedule for: {$schedule->exam->name}", 'Exam Schedule');
+
         return $this->successResponse(
             new ExamScheduleResource($schedule),
             'Jadwal ujian berhasil diupdate',
@@ -85,9 +93,12 @@ class ExamScheduleController extends Controller
     /**
      * Remove the specified exam schedule.
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
+        $schedule = $this->examScheduleService->getScheduleById($id);
         $this->examScheduleService->deleteSchedule($id);
+
+        $this->activityLogService->log($request->user(), "delete", 'Exam Schedule');
 
         return $this->successResponse(
             null,

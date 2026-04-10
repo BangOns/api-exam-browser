@@ -45,13 +45,12 @@ class ExamScheduleService
             // Kita pastikan default status jadwal yang baru dibuat adalah 'scheduled'
             $data['status'] = $data['status'] ?? 'scheduled';
             $schedule = ExamSchedule::create($data);
-            
+
             // Note: $exam->update(['status' => 'scheduled']); dihapus
             // karena sekarang 1 Exam bisa punya banyak jadwal
-            
+
             return $schedule->fresh('exam');
         });
-        $this->flushListCache();
         return $scheduleRequest;
     }
 

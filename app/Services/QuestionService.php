@@ -57,9 +57,6 @@ class QuestionService
         $question = DB::transaction(function () use ($data) {
             return Question::create($data);
         });
-
-        $this->flushListCache();
-
         return $question;
     }
     public function updateQuestion(array $data, $id)
@@ -88,9 +85,6 @@ class QuestionService
             $question->update($data);
             return $question->fresh();
         });
-
-        $this->flushListCache();
-
         return $resultQuestion;
     }
     public function deleteQuestion($id)
@@ -103,16 +97,6 @@ class QuestionService
             $question->delete();
             return $question->fresh();
         });
-        $this->flushListCache();
         return $resultQuestion;
-    }
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
     }
 }
