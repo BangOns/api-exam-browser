@@ -11,6 +11,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\SecurityConfigService;
 
 class ExamAttemptService
 {
@@ -79,8 +80,9 @@ class ExamAttemptService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
+        $configSecure = app(SecurityConfigService::class)->build();
 
-        $attemptRequest = DB::transaction(function () use ($studentId, $examId, $token) {
+        $attemptRequest = DB::transaction(function () use ($studentId, $examId, $token, $configSecure) {
             $activeToken = ExamToken::where('exam_id', $examId)
                 ->where('is_active', true)
                 ->first();
@@ -101,6 +103,8 @@ class ExamAttemptService
                     'student_id' => $studentId,
                     'status' => 'In Progress',
                     'started_at' => now(),
+                    'security_config' => $configSecure,
+
                 ]);
             }
 
@@ -167,13 +171,9 @@ class ExamAttemptService
                 return $attempt; // sudah submit, tidak perlu proses lagi
             }
 
-            // Simpan seluruh jawaban yang dipassing (Bulk Submit dari Strategy B)
+            // Simpan seluruh jawaban yang dipassing secara massal (Bulk Insert/Update)
             $examAnswerService = app(ExamAnswerService::class);
-            foreach ($submittedAnswers as $entry) {
-                if (isset($entry['question_id']) && isset($entry['answer'])) {
-                    $examAnswerService->saveAnswer($attempt->id, $entry['question_id'], $entry['answer']);
-                }
-            }
+            $examAnswerService->saveAnswersBulk($attempt->id, $submittedAnswers);
 
             // Ambil semua jawaban (yang sudah dihitung score-nya otomatis oleh ExamAnswerService)
             $answers = $attempt->answers()->with('question')->get();

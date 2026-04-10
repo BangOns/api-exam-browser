@@ -17,6 +17,8 @@ return new class extends Migration
             $table->uuid('student_id');
             $table->enum('status', ['In Progress', 'Exited', 'Submitted'])->default('In Progress');
             $table->integer('exit_count')->default(0);
+            $table->json('security_config')->nullable();
+            $table->timestamp('last_activity_at')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('submitted_at')->nullable();
             $table->integer('total_score')->default(0)->after('exit_count');

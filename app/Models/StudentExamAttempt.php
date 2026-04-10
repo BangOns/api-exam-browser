@@ -21,12 +21,14 @@ class StudentExamAttempt extends Model
         'started_at',
         'submitted_at',
         'total_score',
+        'security_config',
 
     ];
 
     protected $casts = [
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'security_config' => 'array',
     ];
 
     protected static function boot()
@@ -49,6 +51,7 @@ class StudentExamAttempt extends Model
     {
         return $this->belongsTo(Student::class);
     }
+
     public function answers(): HasMany
     {
         return $this->hasMany(StudentExamAnswer::class);
