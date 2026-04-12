@@ -71,13 +71,13 @@ class QuestionController extends Controller
     }
     public function destroy(Request $request, string $id)
     {
-        $question = $this->questionService->getQuestionById($id);
+        $this->questionService->getQuestionById($id);
         $this->questionService->deleteQuestion($id);
 
         $this->activityLogService->log($request->user(), "delete", 'Question');
 
         return $this->successResponse(
-            $question ? new QuestionResource($question) : null,
+            null,
             'Question deleted successfully',
             200,
         );

@@ -9,6 +9,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamTokenController;
+use App\Http\Controllers\SystemSettingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::apiResource('teacher', TeacherController::class);
                 Route::apiResource('student', StudentController::class);
                 Route::post('exam-tokens/{exam}/generate', [ExamTokenController::class, 'generate']);
+                Route::post('exam-settings', [SystemSettingController::class, 'update']);
             });
             Route::middleware(['ability:role:teacher'])->group(function () {
                 Route::apiResource('question', QuestionController::class);

@@ -25,6 +25,7 @@ class SystemSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'key' =>                'required|string',
             'tab_switch.enabled' => 'required|boolean',
             'fullscreen.enabled' => 'required|boolean',
 
@@ -33,6 +34,7 @@ class SystemSettingRequest extends FormRequest
     public function attributes()
     {
         return [
+            'key' => 'Key',
             'tab_switch.enabled' => 'Tab Switch Enabled',
             'fullscreen.enabled' => 'Fullscreen Enabled',
         ];
@@ -40,8 +42,10 @@ class SystemSettingRequest extends FormRequest
     public function messages()
     {
         return [
+
             'required' => ':attribute is required',
             'boolean' => ':attribute must be a boolean',
+            'string' => ':attribute must be a string',
         ];
     }
     protected function failedValidation(Validator $validator)

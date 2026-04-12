@@ -3,6 +3,7 @@
 use App\Http\Middleware\Authenticate;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -81,10 +82,21 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
         $exceptions->render(function (Throwable $e, Request $request) {
+
             if ($request->is('api/*')) {
+                $message = match (true) {
+                    $e instanceof QueryException => match (true) {
+                        str_contains($e->getMessage(), 'invalid input syntax for type uuid') => 'Format UUID tidak valid.',
+                        str_contains($e->getMessage(), 'duplicate key')                      => 'Data sudah ada.',
+                        str_contains($e->getMessage(), 'foreign key')                        => 'Data tidak bisa dihapus karena masih digunakan.',
+                        default                                                              => 'Terjadi kesalahan pada database.',
+                    },
+                    default => $e->getMessage(),
+                };
+
                 return response()->json([
                     'status' => false,
-                    'message' => $e->getMessage()
+                    'message' => $message
                 ], 500);
             }
         });

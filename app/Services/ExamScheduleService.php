@@ -5,9 +5,11 @@ namespace App\Services;
 use App\Exceptions\DataNotFound;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
+use Exception;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ExamScheduleService
 {
@@ -40,7 +42,17 @@ class ExamScheduleService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
+        $start = Carbon::parse($data['start_time']);
+        $end = Carbon::parse($data['end_time']);
 
+        if ($start->gt($end)) {
+            throw new Exception('Waktu mulai harus sebelum waktu selesai');
+        }
+
+        $duration = $start->diffInMinutes($end);
+        if ($duration != $data['duration']) {
+            throw new Exception('Durasi ujian harus tepat ' . $data['duration'] . ' menit');
+        }
         $scheduleRequest = DB::transaction(function () use ($data, $exam) {
             // Kita pastikan default status jadwal yang baru dibuat adalah 'scheduled'
             $data['status'] = $data['status'] ?? 'scheduled';

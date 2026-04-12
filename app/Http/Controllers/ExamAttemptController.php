@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ExamAttempt\EnterExamRequest;
+use App\Http\Requests\ExamAttempt\SubmitExamRequest;
 use App\Http\Resources\ExamAttempt\ExamAttemptResource;
 use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
@@ -59,27 +60,38 @@ class ExamAttemptController extends Controller
         }
     }
 
-    public function submit(Request $request, string $examId)
+    public function submit(SubmitExamRequest $request, string $examId)
     {
         try {
-            $validated = $request->validate([
-                'answers' => 'nullable|array',
-                'answers.*.question_id' => 'required|string',
-                'answers.*.answer' => 'required|string',
-            ]);
+            $validated = $request->validated();
 
-            $studentId = $request->user()->student->id;
+            $user = $request->user();
 
-            $attempt = $this->examAttemptService->submitExam($studentId, $examId, $validated['answers'] ?? []);
-
-            return $this->successResponse(new ExamAttemptResource($attempt), 'Ujian berhasil disubmit', 200);
-        } catch (\Exception $e) {
-            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
-            return $this->errorResponse($e->getMessage(), $statusCode);
-        } finally {
-            if (isset($attempt)) {
-                $this->activityLogService->log($request->user(), "submit", 'Exam Attempt');
+            if (!$user || !$user->student) {
+                throw new \Exception('Student tidak ditemukan', 404);
             }
+
+            $studentId = $user->student->id;
+
+            $attempt = $this->examAttemptService->submitExam(
+                $studentId,
+                $examId,
+                $validated['answers'] ?? []
+            );
+
+            $this->activityLogService->log($user, "submit", 'Exam Attempt');
+
+            return $this->successResponse(
+                new ExamAttemptResource($attempt),
+                'Ujian berhasil disubmit',
+                200
+            );
+        } catch (\Exception $e) {
+            $statusCode = ($e->getCode() >= 400 && $e->getCode() < 600)
+                ? $e->getCode()
+                : 400;
+
+            return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
 }

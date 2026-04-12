@@ -47,14 +47,14 @@ class ExamAttemptService
         $timeNow = $now->toTimeString();
 
         $activeSchedule = ExamSchedule::where('exam_id', $examId)
-            ->where('exam_date', $dateNow)
-            ->where('start_time', '<=', $timeNow)
-            ->where('end_time', '>=', $timeNow)
+            // ->where('exam_date', $dateNow)
+            // ->where('start_time', '<=', $timeNow)
+            // ->where('end_time', '>=', $timeNow)
             ->first();
 
-        if (!$activeSchedule) {
-            throw new \Exception('Token hanya dapat di-generate jika saat ini berada di dalam rentang waktu jadwal ujian ujian.', 403);
-        }
+        // if (!$activeSchedule) {
+        //     throw new \Exception('Token hanya dapat di-generate jika saat ini berada di dalam rentang waktu jadwal ujian.', 403);
+        // }
 
         return DB::transaction(function () use ($examId) {
             // Menonaktifkan token lama
@@ -150,7 +150,7 @@ class ExamAttemptService
     /**
      * Student mensubmit ujian
      */
-    public function submitExam(string $studentId, string $examId, array $submittedAnswers = [])
+    public function submitExam(string $studentId, string $examId, array $submittedAnswers = []): StudentExamAttempt
     {
         $attempt = DB::transaction(function () use ($studentId, $examId, $submittedAnswers) {
             $attempt = StudentExamAttempt::where('exam_id', $examId)
@@ -184,5 +184,6 @@ class ExamAttemptService
 
             return $attempt;
         });
+        return $attempt;
     }
 }

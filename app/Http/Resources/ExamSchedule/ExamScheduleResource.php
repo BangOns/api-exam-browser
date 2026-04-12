@@ -16,18 +16,19 @@ class ExamScheduleResource extends JsonResource
     {
         return [
             'id'         => $this->id,
-            'exam_id'    => $this->exam_id,
             'exam'       => $this->whenLoaded('exam', fn() => [
-                'id'   => $this->exam->id,
+                // 'id'   => $this->exam->id,
                 'name' => $this->exam->name,
+                'subject' => $this->exam->subject?->name,
+                'class' => $this->exam->class?->name,
+
             ]),
             'exam_date'  => $this->exam_date?->format('Y-m-d'),
             'start_time' => $this->start_time,
             'end_time'   => $this->end_time,
             'duration'   => $this->duration,  // dalam menit
             'status'     => $this->status,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+
         ];
     }
 }

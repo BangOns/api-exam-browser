@@ -4,6 +4,8 @@ namespace App\Http\Requests\Question;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\ValidationException;
 
 class QuestionRequest extends FormRequest
 {
@@ -24,7 +26,7 @@ class QuestionRequest extends FormRequest
     {
         return [
             "question" => "required | string",
-            "lesson_id" => "required | exists:lessons,id",
+            "lesson_id" => "required | uuid | exists:lessons,id",
             "type" => "required | in:Multiple Choice,Essay",
             "options" => "nullable | required_if:type,Multiple Choice|array",
             "correct_answer" => "nullable | required_if:type,Multiple Choice|string",
@@ -51,10 +53,20 @@ class QuestionRequest extends FormRequest
             "required_if" => ":attribute is required",
             "lesson_id.exists" => ":attribute is required",
             "type.in" => ":attribute is required",
-            "options.array" => ":attribute is required",
-            "correct_answer.string" => ":attribute is required",
-            "rubric.string" => ":attribute is required",
-            "max_points.integer" => ":attribute is required",
+            "array" => ":attribute is required",
+            "string" => ":attribute is required",
+            "integer" => ":attribute is required",
+
         ];
+    }
+    protected function failedValidation(Validator $validator)
+    {
+        $response = response()->json([
+            'status' => false,
+            'message' => 'Validasi gagal',
+            'errors' => $validator->errors()
+        ], 422);
+
+        throw new ValidationException($validator, $response);
     }
 }

@@ -15,13 +15,9 @@ class ExamTokenResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'exam_id' => $this->exam_id,
             'token' => $this->token,
             'is_active' => $this->is_active,
             'expired_at' => $this->expired_at,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
         ];
     }
 }

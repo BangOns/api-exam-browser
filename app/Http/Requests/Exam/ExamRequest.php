@@ -26,7 +26,7 @@ class ExamRequest extends FormRequest
             "name" => "required|min:1",
             "subject_id" => "required | exists:subjects,id",
             "class_id" => "required | exists:classes,id",
-            "status" => "required|in:draft,active,scheduled",
+            "status" => "required|in:draft,active,scheduled,completed",
             "questions" => "nullable|array",
             "questions.*" => "nullable|exists:questions,id",
         ];
