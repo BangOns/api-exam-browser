@@ -26,8 +26,11 @@ class ExamAttemptService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-
-        return StudentExamAttempt::with('exam', 'answer')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+        return StudentExamAttempt::with(['exam', 'student', 'answers'])
+            ->when($search, function ($q) use ($search) {
+                $q->whereHas('student', fn($sq) => $sq->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('exam', fn($eq) => $eq->where('title', 'like', "%{$search}%"));
+            })
             ->paginate($perPage);
     }
     public function generateNewToken(string $examId): ExamToken
@@ -36,11 +39,6 @@ class ExamAttemptService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
-        $examSchedule = ExamSchedule::where('exam_id', $examId)->first();
-        if (!$examSchedule) {
-            throw new DataNotFound('Jadwal ujian tidak ditemukan');
-        }
-
         // Cek apakah ada jadwal ujian yang aktif saat ini
         $now = now();
         $dateNow = $now->toDateString();
@@ -80,6 +78,7 @@ class ExamAttemptService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
+
         $configSecure = app(SecurityConfigService::class)->build();
 
         return DB::transaction(function () use ($studentId, $examId, $token, $configSecure) {
@@ -91,32 +90,50 @@ class ExamAttemptService
                 throw new \Exception('Token ujian tidak valid atau sudah kadaluarsa', 400);
             }
 
-            // Gunakan firstOrCreate untuk menangani race condition secara atomik
-            // (Dipadukan dengan Unique Constraint di DB)
-            $attempt = StudentExamAttempt::firstOrCreate(
-                ['exam_id' => $examId, 'student_id' => $studentId],
-                [
-                    'status' => 'In Progress',
-                    'started_at' => now(),
+            $attempt = StudentExamAttempt::where('exam_id', $examId)
+                ->where('student_id', $studentId)
+                ->lockForUpdate()
+                ->first();
+            // ✅ BELUM PERNAH MASUK → Buat attempt baru
+            if (!$attempt) {
+                return StudentExamAttempt::create([
+                    'exam_id'         => $examId,
+                    'student_id'      => $studentId,
+                    'status'          => 'In Progress',
+                    'started_at'      => now(),
                     'security_config' => $configSecure,
-                ]
-            );
-
-            // Jika attempt baru saja dibuat (wasRecentlyCreated), return langsung
-            if ($attempt->wasRecentlyCreated) {
-                return $attempt;
+                    'last_token_used' => $token,
+                ]);
             }
 
-            // Jika attempt sudah ada, cek statusnya
+            // ❌ SUDAH SUBMIT → Tolak permanen
             if ($attempt->status === 'Submitted') {
-                throw new \Exception('Anda sudah menyelesaikan ujian ini dan tidak bisa masuk kembali.', 403);
+                throw new \Exception('Anda sudah menyelesaikan ujian ini.', 403);
             }
 
+            // ❌ EXITED + TOKEN SAMA → Tolak, wajib pakai token baru
+            if ($attempt->status === 'Exited' && $attempt->last_token_used === $token) {
+                throw new \Exception('Token sudah pernah digunakan. Gunakan token baru untuk masuk kembali.', 403);
+            }
+
+            // ✅ EXITED + TOKEN BARU → Izinkan masuk kembali
             if ($attempt->status === 'Exited') {
-                $attempt->update(['status' => 'In Progress']);
+                $attempt->update([
+                    'status'          => 'In Progress',
+                    'last_token_used' => $token,
+                ]);
+
+                return $attempt->fresh(); // kembalikan data terbaru
             }
 
-            return $attempt;
+            // ✅ IN PROGRESS → Reconnect (tab baru / refresh)
+            // Tidak reset started_at, cukup pastikan token tercatat
+            if ($attempt->status === 'In Progress') {
+                return $attempt; // biarkan lanjut, tidak perlu update apapun
+            }
+
+            // ❌ Status tidak dikenali
+            // throw new \Exception('Status ujian tidak valid.', 500);
         });
     }
 
@@ -136,10 +153,8 @@ class ExamAttemptService
             app(ExamViolationsService::class)->handleViolation($attempt, $type);
 
             if ($attempt->status === 'In Progress') {
-                $attempt->update([
-                    'status' => 'Exited',
-                    'exit_count' => $attempt->exit_count + 1
-                ]);
+                $attempt->update(['status' => 'Exited']);
+                $attempt->increment('exit_count');
             }
 
             return $attempt;

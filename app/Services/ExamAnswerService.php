@@ -123,7 +123,7 @@ class ExamAnswerService
                 // Ini akan mengupdate data lama yang punya id sama, dan menginsert data dengan id baru
                 StudentExamAnswer::upsert(
                     $upserts,
-                    ['id'],
+                    ['student_exam_attempt_id', 'question_id'],
                     ['answer', 'score', 'is_correct', 'answered_at', 'updated_at']
                 );
             });

@@ -87,9 +87,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 $message = match (true) {
                     $e instanceof QueryException => match (true) {
                         str_contains($e->getMessage(), 'invalid input syntax for type uuid') => 'Format UUID tidak valid.',
-                        str_contains($e->getMessage(), 'duplicate key')                      => 'Data sudah ada.',
+                        str_contains($e->getMessage(), 'duplicate key')                      =>  $e->getMessage() ?? 'Data sudah ada.',
                         str_contains($e->getMessage(), 'foreign key')                        => 'Data tidak bisa dihapus karena masih digunakan.',
-                        default                                                              => 'Terjadi kesalahan pada database.',
+                        default                                                              => $e->getMessage() ?? 'Terjadi kesalahan pada database.',
                     },
                     default => $e->getMessage(),
                 };

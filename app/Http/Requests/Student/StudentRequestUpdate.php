@@ -25,7 +25,7 @@ class StudentRequestUpdate extends FormRequest
      */
     public function rules(): array
     {
-
+        $studentId = $this->route('student');
         return [
             "full_name" => "required|string|max:255",
             'username' => [
@@ -39,7 +39,6 @@ class StudentRequestUpdate extends FormRequest
                 "required",
                 "string",
                 "max:10",
-
             ],
             "class_id" => "nullable|exists:classes,id",
         ];

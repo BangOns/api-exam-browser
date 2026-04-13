@@ -14,7 +14,12 @@ return new class extends Migration
         Schema::create('questions', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('question');
-            $table->foreignUuid('lesson_id')->constrained('lessons')->onUpdate('cascade')->onDelete('set null');
+
+            $table->foreignUuid('lesson_id')
+                ->nullable()
+                ->constrained('lessons')
+                ->onUpdate('cascade')
+                ->onDelete('cascade');
             $table->enum('type', ['Multiple Choice', 'Essay'])->default('Multiple Choice');
             $table->json('options')->nullable();         // [{label: "A", text: "..."}]
             $table->string('correct_answer')->nullable();  // untuk Multiple Choice

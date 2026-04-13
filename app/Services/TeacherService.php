@@ -103,7 +103,7 @@ class TeacherService
         array $teacherData,
     ): Teacher {
         // Ambil teacher + user relasi
-        $teacher = Teacher::where('user_id', $id)->first();
+        $teacher = Teacher::where('id', $id)->first();
 
 
         if (!$teacher) {

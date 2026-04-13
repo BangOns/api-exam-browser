@@ -22,6 +22,7 @@ class StudentExamAttempt extends Model
         'submitted_at',
         'total_score',
         'security_config',
+        'last_token_used',
 
     ];
 

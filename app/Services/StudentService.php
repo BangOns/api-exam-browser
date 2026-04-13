@@ -75,18 +75,17 @@ class StudentService
         array $studentData,
     ): Student {
         // Ambil teacher + user relasi
-        $student = Student::where('user_id', $id)->first();
+        $student = Student::where('id', $id)->first();
 
 
         if (!$student) {
             throw new DataNotFound('Siswa tidak ditemukan');
         }
-
         DB::transaction(function () use ($student, $studentData) {
             // Update teacher table
             $student->update([
-                'nisn' => $studentData['nisn'] ?? $student->nisn,
-                'class_id' => $studentData['class_id'] ?? null,
+                'nisn' => $studentData['nisn']  === $student->nisn ? $student->nisn : $studentData['nisn'],
+                'class_id' => $studentData['class_id'] === $student->class_id ? $student->class_id : $studentData['class_id'],
             ]);
 
             // Update related user table
@@ -104,6 +103,9 @@ class StudentService
                 ]);
             }
 
+            $student->fresh('user');
+            return $student;
+
             // Update pivot teacher_classes jika ada classIds
             // if (!empty($studentData['class_id'])) {
             //     $student->classes()->sync($studentData['class_id']);
@@ -119,7 +121,7 @@ class StudentService
 
     public function deleteStudent(string $id): Student
     {
-        $student = Student::where('user_id', $id)->firstOrFail();
+        $student = Student::where('id', $id)->firstOrFail();
 
         DB::transaction(function () use ($student) {
             $student->user->delete(); // otomatis hapus teacher & pivot
