@@ -68,19 +68,19 @@ class AuthService
     public function login(array $data, string $ipAddress, string $userAgent): array
     {
         $throttleKey = $this->throttleKey($data['username'], $ipAddress);
-
         // 1. Cek apakah sudah terkena lockout
         $this->checkLockout($throttleKey, $data['username'], $ipAddress);
 
         // 2. Cari user berdasarkan username
         $user = User::where('username', $data['username'])->first();
-
+        if (empty($user)) {
+            throw new InvalidLoginException();
+        }
         // 3. Verifikasi kredensial dengan timing-safe check
         //    Selalu jalankan Hash::check() meski user tidak ada
         //    untuk mencegah timing attack / username enumeration
-        $passwordValid = $this->verifyPassword($data['password'], $user?->password);
-
-        if (!$user || !$passwordValid) {
+        $passwordValid = $this->verifyPassword($data['password'], $user->password);
+        if (!$passwordValid) {
             $this->handleFailedAttempt($throttleKey, $data['username'], $ipAddress, $userAgent);
             throw new InvalidLoginException();
         }
