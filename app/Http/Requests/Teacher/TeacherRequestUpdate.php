@@ -27,7 +27,7 @@ class TeacherRequestUpdate extends FormRequest
         return [
             'full_name' => 'required|string|max:255',
             'username'  => 'required|string|max:255',
-            'password'  => 'required|string|min:8',
+            'password'  => 'nullable|string|min:8',
             "nip"       => "required",
             "lessons"   => "nullable|array",
             "lessons.*.class_id" => "nullable|exists:classes,id",

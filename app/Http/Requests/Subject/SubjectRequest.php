@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Requests\SystemSetting;
+namespace App\Http\Requests\Subject;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\ValidationException;
 
-class SystemSettingRequest extends FormRequest
+class SubjectRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,27 +25,21 @@ class SystemSettingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'key' =>                'required|string',
-            'tab_switch.enabled' => 'required|boolean',
-            'fullscreen.enabled' => 'required|boolean',
-
+            'name' => 'rquired|string|max:255',
         ];
     }
-    public function attributes()
+    public function attributes(): array
     {
         return [
-            'key' => 'Key',
-            'tab_switch.enabled' => 'Tab Switch Enabled',
-            'fullscreen.enabled' => 'Fullscreen Enabled',
+            'name' => 'Nama Mata Pelajaran',
         ];
     }
-    public function messages()
+    public function messages(): array
     {
         return [
-
-            'required' => ':attribute is required',
-            'boolean' => ':attribute must be a boolean',
-            'string' => ':attribute must be a string',
+            'required' => ':attribute wajib diisi.',
+            'string' => ':attribute harus berupa string.',
+            'max' => ':attribute maksimal :max karakter.',
         ];
     }
     protected function failedValidation(Validator $validator)

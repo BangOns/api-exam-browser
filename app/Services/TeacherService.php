@@ -50,15 +50,17 @@ class TeacherService
 
     public function getTeacherById(string $id): ?Teacher
     {
-        $data = Cache::remember(
+        // Clear cache lama yang mungkin corrupt
+        Cache::forget("teacher.{$id}");
+
+        return Cache::remember(
             "teacher.{$id}",
             self::CACHE_TTL,
-            fn() => Teacher::query()->where('user_id', $id)->first()?->toArray()
+            fn() => Teacher::query()
+                ->with(['user', 'lessons'])
+                ->where('id', $id)
+                ->first()
         );
-
-        return $data
-            ? Teacher::hydrate([$data])->first()
-            : null;
     }
 
     // =========================================================================
@@ -157,7 +159,7 @@ class TeacherService
 
     public function deleteTeacher(string $id): Teacher
     {
-        $teacher = Teacher::where('user_id', $id)->firstOrFail();
+        $teacher = Teacher::where('id', $id)->firstOrFail();
 
         DB::transaction(function () use ($teacher) {
             $teacher->user->delete(); // otomatis hapus teacher & pivot

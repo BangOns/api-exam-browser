@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
 
             // siapa yang melakukan
-            $table->foreignUuid('user_id')->constrained('users')->onUpdate('cascade')->onDelete('set null');
+            $table->foreignUuid('user_id')->constrained('users')->onUpdate('cascade')->onDelete('cascade');
 
             // aksi
             $table->string('action'); // create, update, delete, submit, violation
