@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ClassController;
 use App\Http\Controllers\ExamController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamTokenController;
+use App\Http\Controllers\LessonController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\SystemSettingController;
 use Illuminate\Http\Request;
@@ -27,6 +29,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
             Route::middleware(['ability:role:admin'])->group(function () {
                 // class
+                Route::apiResource('report', ActivityLogController::class);
                 Route::apiResource('class', ClassController::class);
                 Route::apiResource('teacher', TeacherController::class);
                 Route::apiResource('student', StudentController::class);
@@ -37,6 +40,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::middleware(['ability:role:teacher'])->group(function () {
                 Route::apiResource('question', QuestionController::class);
                 Route::apiResource('exam', ExamController::class);
+                Route::apiResource('lesson', LessonController::class);
             });
             Route::middleware(['ability:role:student'])->group(function () {
                 Route::post('exam-attempts/{exam}/enter', [ExamAttemptController::class, 'enter']);

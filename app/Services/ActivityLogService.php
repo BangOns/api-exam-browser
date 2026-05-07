@@ -12,11 +12,11 @@ class ActivityLogService
      * Create a new class instance.
      */
     private const MAX_PER_PAGE = 5;
-    public function getAllActivityLogs(int $perPage = 5, string $search = ''): LengthAwarePaginator
+    public function getAllActivityLogs(int $perPage = 5, string $search = null): LengthAwarePaginator
     {
         // Batasi perPage agar tidak bisa di-abuse
-        $perPage = min($perPage, self::MAX_PER_PAGE);
-
+        $perPage = min($perPage ?? 5, self::MAX_PER_PAGE);
+        dd($perPage);
         return ActivityLog::with('user')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
             ->paginate($perPage);
     }

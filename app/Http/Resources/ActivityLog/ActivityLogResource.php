@@ -19,11 +19,12 @@ class ActivityLogResource extends JsonResource
             "id" => $this->id,
             "user" => [
                 "id" => $this->user->id,
-                "name" => $this->user->name,
+                "name" => $this->user->full_name,
                 "role" => $this->user->role,
             ],
             "action" => $this->action,
             "module" => $this->module,
+            "timestamp" => $this->created_at
 
         ];
     }

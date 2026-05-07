@@ -31,15 +31,9 @@ class StudentService
     }
     public function getStudentById(string $id): ?Student
     {
-        $data = Cache::remember(
-            "student.{$id}",
-            self::CACHE_TTL,
-            fn() => Student::with('user', 'class')->where('user_id', $id)->first()?->toArray()
-        );
-
-        return $data
-            ? Student::hydrate([$data])->first()
-            : null;
+        return Student::with('user', 'class')
+            ->where('id', $id)
+            ->first();
     }
 
     // =========================================================================

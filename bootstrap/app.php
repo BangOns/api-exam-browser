@@ -96,7 +96,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 return response()->json([
                     'status' => false,
-                    'message' => $message
+                    'message' => $e->getMessage()
                 ], 500);
             }
         });

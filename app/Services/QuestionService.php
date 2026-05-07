@@ -18,10 +18,7 @@ class QuestionService
     /**
      * Create a new class instance.
      */
-    public function __construct()
-    {
-        //
-    }
+
     public function getAllQuestions(int $perPage = 5, string $search = ''): LengthAwarePaginator
     {
         // Batasi perPage agar tidak bisa di-abuse

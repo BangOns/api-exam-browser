@@ -34,7 +34,7 @@ class StudentRequestUpdate extends FormRequest
                 'max:255',
 
             ],
-            "password" => "required|string|min:8",
+            "password" => "nullable|string|min:8",
             "nisn" => [
                 "required",
                 "string",

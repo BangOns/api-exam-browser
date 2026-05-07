@@ -62,6 +62,20 @@ class TeacherService
                 ->first()
         );
     }
+    public function getTeacherByUserId(string $id): ?Teacher
+    {
+        // Clear cache lama yang mungkin corrupt
+        Cache::forget("teacher.{$id}");
+
+        return Cache::remember(
+            "teacher.{$id}",
+            self::CACHE_TTL,
+            fn() => Teacher::query()
+                ->with(['user', 'lessons'])
+                ->where('user_id', $id)
+                ->first()
+        );
+    }
 
     // =========================================================================
     // Write
