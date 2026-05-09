@@ -24,8 +24,14 @@ class QuestionResource extends JsonResource
             "max_points" => $this->max_points,
             "lesson" => [
                 "id" => $this->lesson_id ?? null,
-                "name" =>  $this->lesson?->class?->name ?? null,
-                "subject" => $this->lesson?->subject?->name ?? null,
+                "class" => [
+                    "id" => $this->lesson?->class_id ?? null,
+                    "name" => $this->lesson?->class?->name ?? null
+                ],
+                "subject" => [
+                    "id" => $this->lesson?->subject_id ?? null,
+                    "name" => $this->lesson?->subject?->name ?? null
+                ],
             ],
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
