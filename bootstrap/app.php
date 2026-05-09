@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\ApiRateLimit;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -28,6 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
             'throttle' => ThrottleRequests::class,
+        ]);
+
+        // Apply security headers & rate limiting to API routes
+        $middleware->group('api', [
+            SecurityHeaders::class,
+            ApiRateLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
@@ -85,18 +93,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if ($request->is('api/*')) {
                 $message = match (true) {
-                    $e instanceof QueryException => match (true) {
-                        str_contains($e->getMessage(), 'invalid input syntax for type uuid') => 'Format UUID tidak valid.',
-                        str_contains($e->getMessage(), 'duplicate key')                      =>  $e->getMessage() ?? 'Data sudah ada.',
-                        str_contains($e->getMessage(), 'foreign key')                        => 'Data tidak bisa dihapus karena masih digunakan.',
-                        default                                                              => $e->getMessage() ?? 'Terjadi kesalahan pada database.',
-                    },
-                    default => $e->getMessage(),
+                    $e instanceof QueryException => 'Database error occurred.',
+                    default => app()->environment('production') 
+                        ? 'An error occurred. Please try again later.'
+                        : $e->getMessage(),
                 };
 
                 return response()->json([
                     'status' => false,
-                    'message' => $e->getMessage()
+                    'message' => $message
                 ], 500);
             }
         });

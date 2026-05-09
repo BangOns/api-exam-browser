@@ -17,8 +17,14 @@ class LessonService
     public function getAllLesson(?string $search = null): Collection
     {
         $teacher = $this->teacherService->getTeacherByUserId(Auth::id());
-        return Lesson::with('teacher', 'class', 'subject')
-            ->where('teacher_id', $teacher->id)
-            ->get();
+        
+        $query = Lesson::select('id', 'name', 'teacher_id', 'class_id', 'subject_id', 'created_at', 'updated_at')
+            ->where('teacher_id', $teacher->id);
+
+        if (!empty($search)) {
+            $query = SearchService::apply($query, $search, 'search_vector');
+        }
+
+        return $query->get();
     }
 }

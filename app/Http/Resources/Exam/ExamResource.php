@@ -16,22 +16,20 @@ class ExamResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "name" => $this->name,
-            "subject" => $this->subject?->name ?? null,
-            "class" => $this->class?->name ?? null,
+            "name" => e($this->name),
+            "subject" => e($this->subject?->name) ?? null,
+            "class" => e($this->class?->name) ?? null,
             "status" => $this->status,
             "questions" => $this->questions->map(function ($question) {
                 return [
                     "id" => $question->id,
                     "type" => $question->type,
-                    "question" => $question->question,
-                    "options" => $question->options ? json_decode($question->options) : [],
-                    "answer" => $question->correct_answer ?? null,
-                    "rubric" => $question->rubric ?? null,
-
+                    "question" => e($question->question),
+                    "options" => $question->options ? json_decode($question->options, true) : [],
+                    "answer" => $question->correct_answer ? e($question->correct_answer) : null,
+                    "rubric" => $question->rubric ? e($question->rubric) : null,
                 ];
             }),
-
         ];
     }
 }

@@ -26,9 +26,13 @@ class ClassService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
+        $query = Classes::select('id', 'name', 'level', 'department', 'created_at', 'updated_at');
 
-        return Classes::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-            ->paginate($perPage);
+        if (!empty($search)) {
+            $query = SearchService::apply($query, $search, 'search_vector');
+        }
+
+        return $query->paginate($perPage);
     }
 
 

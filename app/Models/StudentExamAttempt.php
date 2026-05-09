@@ -29,7 +29,7 @@ class StudentExamAttempt extends Model
     protected $casts = [
         'started_at' => 'datetime',
         'submitted_at' => 'datetime',
-        'security_config' => 'array',
+        'security_config' => 'encrypted:array',
     ];
 
     protected static function boot()

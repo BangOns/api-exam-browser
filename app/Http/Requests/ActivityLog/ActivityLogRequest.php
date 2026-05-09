@@ -12,7 +12,7 @@ class ActivityLogRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth('sanctum')->check();
     }
 
     /**

@@ -12,7 +12,7 @@ class ExamRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth('sanctum')->check();
     }
 
     /**
@@ -23,12 +23,12 @@ class ExamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "name" => "required|min:1",
-            "subject_id" => "required | exists:subjects,id",
-            "class_id" => "required | exists:classes,id",
+            "name" => "required|string|min:3|max:255",
+            "subject_id" => "required|uuid|exists:subjects,id",
+            "class_id" => "required|uuid|exists:classes,id",
             "status" => "required|in:draft,active,scheduled,completed",
-            "questions" => "nullable|array",
-            "questions.*" => "nullable|exists:questions,id",
+            "questions" => "nullable|array|max:500",
+            "questions.*" => "uuid|exists:questions,id",
         ];
     }
     public function attributes()

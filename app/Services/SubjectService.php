@@ -23,18 +23,21 @@ class SubjectService
     {
         $search = trim($search);
 
-        return Subject::when(
-            $search !== '',
-            fn($q) =>
-            $q->where('name', 'like', "%{$search}%")
-        )->get();
+        $query = Subject::select('id', 'name', 'created_at', 'updated_at');
+
+        // Use full-text search for better performance
+        if (!empty($search)) {
+            $query = SearchService::apply($query, $search, 'search_vector');
+        }
+
+        return $query->get();
     }
     public function getSubjectById(string $id): ?Subject
     {
-        $data = Cache::remember(
+        $data = Cache::tags(['subject'])->remember(
             "subject.{$id}",
             self::CACHE_TTL,
-            fn() => Subject::with('user', 'class')->where('id', $id)->first()?->toArray()
+            fn() => Subject::select('id', 'name', 'created_at', 'updated_at')->where('id', $id)->first()?->toArray()
         );
 
         return $data
@@ -80,8 +83,8 @@ class SubjectService
             return $subject;
         });
 
-        // Hapus cache
-        Cache::forget("subject.{$id}");
+        // Cache invalidation menggunakan tags
+        Cache::tags(['subject'])->flush();
 
         // Load user + classes untuk response
         return $subject;

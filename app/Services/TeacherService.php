@@ -30,48 +30,33 @@ class TeacherService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-
-        return Teacher::with('user', 'lessons')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+        return Teacher::select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+            ->with('user:id,username,full_name,role')
+            ->when($search, fn($q) => $q->where('nip', 'like', "%{$search}%")
+                ->orWhereHas('user', fn($uq) => $uq->where('full_name', 'like', "%{$search}%")))
             ->paginate($perPage);
     }
-    // // =========================================================================
-    // public function getAllTeachers(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    // {
-    //     // Batasi perPage agar tidak bisa di-abuse
-    //     $perPage = min($perPage, self::MAX_PER_PAGE);
-
-    //     $cacheKey = self::CACHE_LIST_PREFIX . ".{$search}.{$perPage}";
-
-    //     return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($perPage, $search) {
-    //         return Teacher::when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
-    //             ->paginate($perPage);
-    //     });
-    // }
 
     public function getTeacherById(string $id): ?Teacher
     {
-        // Clear cache lama yang mungkin corrupt
-        Cache::forget("teacher.{$id}");
-
-        return Cache::remember(
+        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
             "teacher.{$id}",
             self::CACHE_TTL,
             fn() => Teacher::query()
-                ->with(['user', 'lessons'])
+                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+                ->with(['user:id,username,full_name,role'])
                 ->where('id', $id)
                 ->first()
         );
     }
     public function getTeacherByUserId(string $id): ?Teacher
     {
-        // Clear cache lama yang mungkin corrupt
-        Cache::forget("teacher.{$id}");
-
-        return Cache::remember(
-            "teacher.{$id}",
+        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
+            "teacher.user.{$id}",
             self::CACHE_TTL,
             fn() => Teacher::query()
-                ->with(['user', 'lessons'])
+                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+                ->with(['user:id,username,full_name,role'])
                 ->where('user_id', $id)
                 ->first()
         );
@@ -191,16 +176,11 @@ class TeacherService
 
     /**
      * Hapus semua cache list sekaligus menggunakan cache tags.
-     * Jika driver tidak support tags (misal: file/database),
-     * gunakan Cache::flush() atau ganti driver ke Redis/Memcached.
+     * Menggunakan Redis driver untuk support cache tags.
      */
     private function flushListCache(): void
     {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
+        // Gunakan cache tags untuk selective flush (hanya teacher data)
+        Cache::tags([self::CACHE_LIST_PREFIX])->flush();
     }
 }

@@ -16,14 +16,14 @@ class QuestionResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "question" => $this->question,
+            "question" => e($this->question),
             "type" => $this->type,
-            "options" => $this->options ? json_decode($this->options) : null,
-            "correct_answer" => $this->correct_answer ? $this->correct_answer : null,
-            "rubric" => $this->rubric ? $this->rubric : null,
-            "max_points" => $this->max_points,
-            "class" => $this->lesson?->class?->name ?? null,
-            "subject" => $this->lesson?->subject?->name ?? null,
+            "options" => $this->options ? json_decode($this->options, true) : null,
+            "correct_answer" => $this->correct_answer ? e($this->correct_answer) : null,
+            "rubric" => $this->rubric ? e($this->rubric) : null,
+            "max_points" => (int) $this->max_points,
+            "class" => e($this->lesson?->class?->name) ?? null,
+            "subject" => e($this->lesson?->subject?->name) ?? null,
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at,
         ];

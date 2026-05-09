@@ -12,9 +12,6 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentService
 {
-    // Durasi cache dalam detik
-    private const CACHE_TTL     = 60;
-
     // Batas maksimum item per halaman
     private const MAX_PER_PAGE  = 100;
 
@@ -26,13 +23,17 @@ class StudentService
     {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return Student::with('user', 'class')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
+        return Student::select('id', 'user_id', 'class_id', 'nisn', 'created_at', 'updated_at')
+            ->with('user:id,username,full_name,role', 'class:id,name')
+            ->when($search, fn($q) => $q->where('nisn', 'like', "%{$search}%")
+                ->orWhereHas('user', fn($uq) => $uq->where('full_name', 'like', "%{$search}%")))
             ->paginate($perPage);
     }
     public function getStudentById(string $id): ?Student
     {
-        return Student::with('user', 'class')
-            ->where('id', $id)
+        return Student::where('id', $id)
+            ->select('id', 'user_id', 'class_id', 'nisn', 'created_at', 'updated_at')
+            ->with('user:id,username,full_name,role', 'class:id,name')
             ->first();
     }
 
@@ -68,48 +69,39 @@ class StudentService
         string $id,
         array $studentData,
     ): Student {
-        // Ambil teacher + user relasi
         $student = Student::where('id', $id)->first();
-
 
         if (!$student) {
             throw new DataNotFound('Siswa tidak ditemukan');
         }
+
         DB::transaction(function () use ($student, $studentData) {
-            // Update teacher table
+            // Update student attributes
             $student->update([
-                'nisn' => $studentData['nisn']  === $student->nisn ? $student->nisn : $studentData['nisn'],
-                'class_id' => $studentData['class_id'] === $student->class_id ? $student->class_id : $studentData['class_id'],
+                'nisn' => $studentData['nisn'] ?? $student->nisn,
+                'class_id' => $studentData['class_id'] ?? $student->class_id,
             ]);
 
-            // Update related user table
+            // Update related user if provided
             if (isset($studentData['full_name']) || isset($studentData['username']) || isset($studentData['password'])) {
-                $userData = [];
-                if (isset($studentData['full_name'])) $userData['full_name'] = $studentData['full_name'];
-                if (isset($studentData['username'])) $userData['username'] = $studentData['username'];
-                if (isset($studentData['password'])) $userData['password'] = Hash::make($studentData['password']);
-                User::where('id', $student->user_id)->update([
-                    'full_name' => $userData['full_name'] ?? $student->user->full_name,
-                    'username' => $userData['username'] ?? $student->user->username,
-                    'password' => $userData['password'] ?? $student->user->password,
-                    'role' => 'student'
+                $userData = [
+                    'full_name' => $studentData['full_name'] ?? $student->user->full_name,
+                    'username' => $studentData['username'] ?? $student->user->username,
+                    'role' => 'student',
+                ];
 
-                ]);
+                if (isset($studentData['password'])) {
+                    $userData['password'] = Hash::make($studentData['password']);
+                }
+
+                $student->user->update($userData);
             }
-
-            $student->fresh('user');
-            return $student;
-
-            // Update pivot teacher_classes jika ada classIds
-            // if (!empty($studentData['class_id'])) {
-            //     $student->classes()->sync($studentData['class_id']);
-            // }
         });
 
-        // Hapus cache
+        // Clear cache
         Cache::forget("student.{$id}");
 
-        // Load user + classes untuk response
+        // Return fresh instance with relations
         return $student->load('user', 'class');
     }
 

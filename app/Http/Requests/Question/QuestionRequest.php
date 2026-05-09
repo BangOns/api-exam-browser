@@ -14,7 +14,7 @@ class QuestionRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return auth('sanctum')->check();
     }
 
     /**
@@ -25,13 +25,14 @@ class QuestionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "question" => "required | string",
-            "lesson_id" => "required | uuid | exists:lessons,id",
-            "type" => "required | in:Multiple Choice,Essay",
-            "options" => "nullable | required_if:type,Multiple Choice|array",
-            "correct_answer" => "nullable | required_if:type,Multiple Choice|string",
-            "rubric" => "nullable | required_if:type,Essay|string",
-            "max_points" => "required | integer",
+            "question" => "required|string|min:10|max:5000",
+            "lesson_id" => "required|uuid|exists:lessons,id",
+            "type" => "required|in:Multiple Choice,Essay",
+            "options" => "nullable|required_if:type,Multiple Choice|array|max:20",
+            "options.*" => "string|max:500",
+            "correct_answer" => "nullable|required_if:type,Multiple Choice|string|max:500",
+            "rubric" => "nullable|required_if:type,Essay|string|min:10|max:5000",
+            "max_points" => "required|integer|min:1|max:1000",
         ];
     }
     public function attributes(): array
