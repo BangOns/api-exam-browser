@@ -16,8 +16,14 @@ class LessonResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "class" => $this->class?->name ?? null,
-            "subject" => $this->subject?->name ?? null,
+            "class" => [
+                "id" => $this->class->id ?? null,
+                "name" => $this->class?->name ?? null
+            ],
+            "subject" => [
+                "id" => $this->subject->id ?? null,
+                "name" => $this->subject?->name ?? null
+            ],
             "created_at" => $this->created_at,
             "updated_at" => $this->updated_at
         ];
