@@ -25,12 +25,21 @@ class QuestionResource extends JsonResource
             "lesson" => [
                 "id" => $this->lesson_id ?? null,
                 "class" => [
+<<<<<<< HEAD
                     "id" => e($this->lesson?->class_id) ?? null,
                     "name" => e($this->lesson?->class?->name) ?? null
                 ],
                 "subject" => [
                     "id" => e($this->lesson?->subject_id) ?? null,
                     "name" => e($this->lesson?->subject?->name) ?? null
+=======
+                    "id" => $this->lesson?->class_id ?? null,
+                    "name" => $this->lesson?->class?->name ?? null
+                ],
+                "subject" => [
+                    "id" => $this->lesson?->subject_id ?? null,
+                    "name" => $this->lesson?->subject?->name ?? null
+>>>>>>> 8a90b0c (feat: enhance Lesson and Question resources to include nested class and subject details)
                 ],
             ],
             "created_at" => $this->created_at,
