@@ -53,20 +53,7 @@ return new class extends Migration
         DB::statement('CREATE INDEX idx_classes_search_fts ON classes USING GiST(search_vector)');
         DB::statement('CREATE INDEX idx_classes_name_trigram ON classes USING GIN(name gin_trgm_ops)');
 
-        // ============================================================================
-        // LESSONS TABLE - Full-Text Search Setup
-        // ============================================================================
-        DB::statement('ALTER TABLE lessons ADD COLUMN search_vector tsvector');
-        DB::statement('UPDATE lessons SET search_vector = to_tsvector(\'english\', name)');
-        DB::statement('CREATE INDEX idx_lessons_search_fts ON lessons USING GiST(search_vector)');
-        DB::statement('CREATE INDEX idx_lessons_name_trigram ON lessons USING GIN(name gin_trgm_ops)');
-
-        // ============================================================================
-        // ACTIVITY LOGS TABLE - Full-Text Search (for audit logs)
-        // ============================================================================
-        DB::statement('ALTER TABLE activity_logs ADD COLUMN search_vector tsvector');
-        DB::statement('UPDATE activity_logs SET search_vector = to_tsvector(\'english\', name)');
-        DB::statement('CREATE INDEX idx_activity_logs_search_fts ON activity_logs USING GiST(search_vector)');
+        
     }
 
     /**
