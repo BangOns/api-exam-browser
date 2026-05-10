@@ -16,7 +16,6 @@ class ActivityLogService
     {
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage ?? 5, self::MAX_PER_PAGE);
-        dd($perPage);
         return ActivityLog::with('user')->when($search, fn($q) => $q->where('name', 'like', "%{$search}%"))
             ->paginate($perPage);
     }

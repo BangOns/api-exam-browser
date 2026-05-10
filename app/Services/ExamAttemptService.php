@@ -86,7 +86,7 @@ class ExamAttemptService
                 ->where('is_active', true)
                 ->first();
 
-            if (!$activeToken || $activeToken->token !== $token) {
+            if (!$activeToken || !hash_equals($activeToken->token, $token)) {
                 throw new \Exception('Token ujian tidak valid atau sudah kadaluarsa', 400);
             }
 
@@ -133,7 +133,7 @@ class ExamAttemptService
             }
 
             // ❌ Status tidak dikenali
-            // throw new \Exception('Status ujian tidak valid.', 500);
+            throw new \Exception('Status ujian tidak valid.', 500);
         });
     }
 

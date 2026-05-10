@@ -92,7 +92,7 @@ class SubjectService
         $subject = Subject::where('id', $id)->firstOrFail();
 
         DB::transaction(function () use ($subject) {
-            $subject->user->delete(); // otomatis hapus teacher & pivot
+            $subject->delete(); // otomatis hapus teacher & pivot
         });
 
         Cache::forget("subject.{$id}");

@@ -92,7 +92,7 @@ class QuestionService
         }
         $resultQuestion = DB::transaction(function () use ($question) {
             $question->delete();
-            return $question->fresh();
+            return $question;
         });
         return $resultQuestion;
     }

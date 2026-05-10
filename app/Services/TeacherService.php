@@ -65,10 +65,10 @@ class TeacherService
     public function getTeacherByUserId(string $id): ?Teacher
     {
         // Clear cache lama yang mungkin corrupt
-        Cache::forget("teacher.{$id}");
+        Cache::forget("teacher.uid.{$id}");
 
         return Cache::remember(
-            "teacher.{$id}",
+            "teacher.uid.{$id}",
             self::CACHE_TTL,
             fn() => Teacher::query()
                 ->with(['user', 'lessons'])
@@ -110,7 +110,7 @@ class TeacherService
             return $teacher;
         });
 
-        $this->flushListCache();
+        // $this->flushListCache();
 
         return $teacher;
     }
@@ -165,7 +165,7 @@ class TeacherService
 
         // Hapus cache
         Cache::forget("teacher.{$id}");
-        $this->flushListCache();
+        // $this->flushListCache();
 
         // Load user + classes untuk response
         return $teacher->load('user', 'lessons');
@@ -180,7 +180,7 @@ class TeacherService
         });
 
         Cache::forget("teacher.{$id}");
-        $this->flushListCache();
+        // $this->flushListCache();
 
         return $teacher; // return object sebelum dihapus
     }
@@ -194,13 +194,13 @@ class TeacherService
      * Jika driver tidak support tags (misal: file/database),
      * gunakan Cache::flush() atau ganti driver ke Redis/Memcached.
      */
-    private function flushListCache(): void
-    {
-        // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
-        // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
+    // private function flushListCache(): void
+    // {
+    //     // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
+    //     // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
 
-        // Jika pakai driver tanpa tags — flush seluruh cache
-        // (pertimbangkan ganti ke Redis agar tidak flush semua data)
-        Cache::flush();
-    }
+    //     // Jika pakai driver tanpa tags — flush seluruh cache
+    //     // (pertimbangkan ganti ke Redis agar tidak flush semua data)
+    //     Cache::flush();
+    // }
 }

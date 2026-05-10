@@ -97,8 +97,8 @@ class StudentService
                 ]);
             }
 
-            $student->fresh('user');
-            return $student;
+            // $student->fresh('user');
+            // return $student;
 
             // Update pivot teacher_classes jika ada classIds
             // if (!empty($studentData['class_id'])) {
