@@ -85,10 +85,10 @@ class ExamService
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');
         }
-        $resultExam = DB::transaction(function () use ($exam) {
+        DB::transaction(function () use ($exam) {
             $exam->delete();
         });
-        return $resultExam;
+        return $exam;
     }
 
     public function monitorExam(string $id)
