@@ -51,8 +51,11 @@ class TeacherService
     }
     public function getTeacherByUserId(string $id): ?Teacher
     {
-        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
-            "teacher.user.{$id}",
+        // Clear cache lama yang mungkin corrupt
+        Cache::forget("teacher.uid.{$id}");
+
+        return Cache::remember(
+            "teacher.uid.{$id}",
             self::CACHE_TTL,
             fn() => Teacher::query()
                 ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
@@ -95,7 +98,7 @@ class TeacherService
             return $teacher;
         });
 
-        $this->flushListCache();
+        // $this->flushListCache();
 
         return $teacher;
     }
@@ -150,7 +153,7 @@ class TeacherService
 
         // Hapus cache
         Cache::forget("teacher.{$id}");
-        $this->flushListCache();
+        // $this->flushListCache();
 
         // Load user + classes untuk response
         return $teacher->load('user', 'lessons');
@@ -165,7 +168,7 @@ class TeacherService
         });
 
         Cache::forget("teacher.{$id}");
-        $this->flushListCache();
+        // $this->flushListCache();
 
         return $teacher; // return object sebelum dihapus
     }
@@ -178,9 +181,13 @@ class TeacherService
      * Hapus semua cache list sekaligus menggunakan cache tags.
      * Menggunakan Redis driver untuk support cache tags.
      */
-    private function flushListCache(): void
-    {
-        // Gunakan cache tags untuk selective flush (hanya teacher data)
-        Cache::tags([self::CACHE_LIST_PREFIX])->flush();
-    }
+    // private function flushListCache(): void
+    // {
+    //     // Jika pakai Redis / Memcached — gunakan tags (direkomendasikan)
+    //     // Cache::tags([self::CACHE_LIST_PREFIX])->flush();
+
+    //     // Jika pakai driver tanpa tags — flush seluruh cache
+    //     // (pertimbangkan ganti ke Redis agar tidak flush semua data)
+    //     Cache::flush();
+    // }
 }

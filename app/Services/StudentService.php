@@ -84,18 +84,26 @@ class StudentService
 
             // Update related user if provided
             if (isset($studentData['full_name']) || isset($studentData['username']) || isset($studentData['password'])) {
-                $userData = [
-                    'full_name' => $studentData['full_name'] ?? $student->user->full_name,
-                    'username' => $studentData['username'] ?? $student->user->username,
-                    'role' => 'student',
-                ];
+                $userData = [];
+                if (isset($studentData['full_name'])) $userData['full_name'] = $studentData['full_name'];
+                if (isset($studentData['username'])) $userData['username'] = $studentData['username'];
+                if (isset($studentData['password'])) $userData['password'] = Hash::make($studentData['password']);
+                User::where('id', $student->user_id)->update([
+                    'full_name' => $userData['full_name'] ?? $student->user->full_name,
+                    'username' => $userData['username'] ?? $student->user->username,
+                    'password' => $userData['password'] ?? $student->user->password,
+                    'role' => 'student'
 
-                if (isset($studentData['password'])) {
-                    $userData['password'] = Hash::make($studentData['password']);
-                }
-
-                $student->user->update($userData);
+                ]);
             }
+
+            // $student->fresh('user');
+            // return $student;
+
+            // Update pivot teacher_classes jika ada classIds
+            // if (!empty($studentData['class_id'])) {
+            //     $student->classes()->sync($studentData['class_id']);
+            // }
         });
 
         // Clear cache
