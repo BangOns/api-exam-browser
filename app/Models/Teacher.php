@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 
 class Teacher extends Model
 {
-    protected $fillable = ['user_id', 'nip'];
+    protected $fillable = ['user_id', 'nip', 'status'];
     protected $table = "teachers";
     protected $keyType = 'string';
     public $incrementing = false;
