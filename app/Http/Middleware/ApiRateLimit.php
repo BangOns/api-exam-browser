@@ -17,17 +17,17 @@ class ApiRateLimit
     public function handle(Request $request, Closure $next): Response
     {
         // 120 requests per minute per IP
-        $limit = RateLimiter::attempt(
-            'api:' . $request->ip(),
-            perMinute: 120
-        );
+        // $limit = RateLimiter::attempt(
+        //     'api:' . $request->ip(),
+        // perMinute: 120
+        // );
 
-        if (!$limit) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Too many requests. Please try again in a moment.'
-            ], 429);
-        }
+        // if (!$limit) {
+        //     return response()->json([
+        //         'status' => false,
+        //         'message' => 'Too many requests. Please try again in a moment.'
+        //     ], 429);
+        // }
 
         return $next($request);
     }

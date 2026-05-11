@@ -30,7 +30,7 @@ class TeacherService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return Teacher::select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+        return Teacher::select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
             ->with('user:id,username,full_name,role')
             ->when($search, fn($q) => $q->where('nip', 'like', "%{$search}%")
                 ->orWhereHas('user', fn($uq) => $uq->where('full_name', 'like', "%{$search}%")))
@@ -39,11 +39,11 @@ class TeacherService
 
     public function getTeacherById(string $id): ?Teacher
     {
-        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
+        return Cache::remember(
             "teacher.{$id}",
             self::CACHE_TTL,
             fn() => Teacher::query()
-                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+                ->select('id', 'user_id', 'status', 'nip', 'created_at', 'updated_at')
                 ->with(['user:id,username,full_name,role'])
                 ->where('id', $id)
                 ->first()
