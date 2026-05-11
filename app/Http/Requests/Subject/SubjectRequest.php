@@ -25,7 +25,7 @@ class SubjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'rquired|string|max:255',
+            'name' => 'required|string|max:255',
         ];
     }
     public function attributes(): array

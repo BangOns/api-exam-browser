@@ -23,7 +23,7 @@ class StudentService
     {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return Student::select('id', 'user_id', 'class_id', 'nisn', 'created_at', 'updated_at')
+        return Student::select('id', 'user_id', 'class_id', 'nisn', 'status', 'created_at', 'updated_at')
             ->with('user:id,username,full_name,role', 'class:id,name')
             ->when($search, fn($q) => $q->where('nisn', 'like', "%{$search}%")
                 ->orWhereHas('user', fn($uq) => $uq->where('full_name', 'like', "%{$search}%")))
