@@ -24,8 +24,7 @@ class ExamRequest extends FormRequest
     {
         return [
             "name" => "required|string|min:3|max:255",
-            "subject_id" => "required|uuid|exists:subjects,id",
-            "class_id" => "required|uuid|exists:classes,id",
+            'lesson_id' => 'required|uuid|exists:lessons,id',
             "status" => "required|in:draft,active,scheduled,completed",
             "questions" => "nullable|array|max:500",
             "questions.*" => "uuid|exists:questions,id",

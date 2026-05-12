@@ -22,8 +22,8 @@ class ExamService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $query = Exam::select('id', 'name', 'subject_id', 'class_id', 'status', 'created_at', 'updated_at')
-            ->with('subject:id,name', 'class:id,name');
+        $query = Exam::select('id', 'name', 'lesson_id', 'status', 'created_at', 'updated_at')
+            ->with('lesson');
 
         if (!empty($search)) {
             $query = SearchService::apply($query, $search, 'search_vector');

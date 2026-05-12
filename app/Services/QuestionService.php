@@ -20,8 +20,8 @@ class QuestionService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $query = Question::select('id', 'question', 'lesson_id', 'type', 'max_points', 'created_at', 'updated_at')
-            ->with('lesson:id,name,subject_id,class_id', 'lesson.subject:id,name', 'lesson.class:id,name');
+        $query = Question::select('id', 'question', 'lesson_id', 'type', 'options', 'correct_answer', 'rubric', 'max_points', 'created_at', 'updated_at')
+            ->with('lesson');
 
         if (!empty($search)) {
             $query = SearchService::apply($query, $search, 'search_vector');
@@ -33,7 +33,7 @@ class QuestionService
     {
         $question = Question::where('id', $id)
             ->select('id', 'question', 'lesson_id', 'type', 'options', 'correct_answer', 'rubric', 'max_points', 'created_at', 'updated_at')
-            ->with('lesson:id,name,subject_id,class_id', 'lesson.subject:id,name', 'lesson.class:id,name')
+            ->with('lesson')
             ->first();
         if (!$question) {
             throw new DataNotFound('Pertanyaan tidak ditemukan');
