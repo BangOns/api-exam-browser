@@ -17,8 +17,14 @@ class ExamResource extends JsonResource
         return [
             "id" => $this->id,
             "name" => e($this->name),
-            "subject" => e($this->subject?->name) ?? null,
-            "class" => e($this->class?->name) ?? null,
+            "class" => [
+                "id" => $this->lesson->class->id ?? null,
+                "name" => $this->lesson->class?->name ?? null
+            ],
+            "subject" => [
+                "id" => $this->lesson->subject->id ?? null,
+                "name" => $this->lesson->subject?->name ?? null
+            ],
             "status" => $this->status,
             "questions" => $this->questions->map(function ($question) {
                 return [

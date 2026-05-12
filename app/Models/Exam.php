@@ -12,8 +12,7 @@ class Exam extends Model
 {
     protected $fillable = [
         'name',
-        'subject_id',
-        'class_id',
+        'lesson_id',
         'status',
         'token',
     ];
@@ -33,13 +32,9 @@ class Exam extends Model
     }
 
 
-    public function subject(): BelongsTo
+    public function lesson(): BelongsTo
     {
-        return $this->belongsTo(Subject::class);
-    }
-    public function class(): BelongsTo
-    {
-        return $this->belongsTo(Classes::class);
+        return $this->belongsTo(Lesson::class);
     }
     public function questions(): BelongsToMany
     {
