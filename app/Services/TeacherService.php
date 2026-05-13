@@ -30,7 +30,7 @@ class TeacherService
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return Teacher::select('id', 'user_id', 'nip', 'created_at', 'updated_at')
+        return Teacher::select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
             ->with('user:id,username,full_name,role')
             ->when($search, fn($q) => $q->where('nip', 'like', "%{$search}%")
                 ->orWhereHas('user', fn($uq) => $uq->where('full_name', 'like', "%{$search}%")))
@@ -39,27 +39,20 @@ class TeacherService
 
     public function getTeacherById(string $id): ?Teacher
     {
-        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
-            "teacher.{$id}",
-            self::CACHE_TTL,
-            fn() => Teacher::query()
-                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
-                ->with(['user:id,username,full_name,role'])
-                ->where('id', $id)
-                ->first()
-        );
+        return Teacher::query()
+            ->select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
+            ->with(['user:id,username,full_name,role'])
+            ->where('id', $id)
+            ->first();
     }
+
     public function getTeacherByUserId(string $id): ?Teacher
     {
-        return Cache::tags([self::CACHE_LIST_PREFIX])->remember(
-            "teacher.user.{$id}",
-            self::CACHE_TTL,
-            fn() => Teacher::query()
-                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
-                ->with(['user:id,username,full_name,role'])
-                ->where('user_id', $id)
-                ->first()
-        );
+        return Teacher::query()
+            ->select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
+            ->with(['user:id,username,full_name,role'])
+            ->where('user_id', $id)
+            ->first();
     }
 
     // =========================================================================
@@ -115,6 +108,7 @@ class TeacherService
             // 1. Update teacher table
             $teacher->update([
                 'nip' => $teacherData['nip'] ?? $teacher->nip,
+                'status' => $teacherData['status'] ?? $teacher->status,
             ]);
 
             // 2. Update related user table
@@ -148,8 +142,7 @@ class TeacherService
             }
         });
 
-        // Hapus cache
-        Cache::forget("teacher.{$id}");
+        // Clear list cache since teacher was updated
         $this->flushListCache();
 
         // Load user + classes untuk response
@@ -164,7 +157,7 @@ class TeacherService
             $teacher->user->delete(); // otomatis hapus teacher & pivot
         });
 
-        Cache::forget("teacher.{$id}");
+        // Clear list cache since teacher was deleted
         $this->flushListCache();
 
         return $teacher; // return object sebelum dihapus
