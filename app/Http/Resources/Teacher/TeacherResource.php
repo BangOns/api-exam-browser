@@ -19,6 +19,7 @@ class TeacherResource extends JsonResource
             "name" => $this->user->full_name,
             "username" => $this->user->username,
             "nip" => $this->nip,
+            "status" => $this->status,
             'teaching_assignments' => $this->lessons->map(function ($lesson) {
                 return [
                     'class_id' => $lesson->class->id,

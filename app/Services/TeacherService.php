@@ -39,30 +39,20 @@ class TeacherService
 
     public function getTeacherById(string $id): ?Teacher
     {
-        return Cache::remember(
-            "teacher.{$id}",
-            self::CACHE_TTL,
-            fn() => Teacher::query()
-                ->select('id', 'user_id', 'status', 'nip', 'created_at', 'updated_at')
-                ->with(['user:id,username,full_name,role'])
-                ->where('id', $id)
-                ->first()
-        );
+        return Teacher::query()
+            ->select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
+            ->with(['user:id,username,full_name,role'])
+            ->where('id', $id)
+            ->first();
     }
+
     public function getTeacherByUserId(string $id): ?Teacher
     {
-        // Clear cache lama yang mungkin corrupt
-        Cache::forget("teacher.uid.{$id}");
-
-        return Cache::remember(
-            "teacher.uid.{$id}",
-            self::CACHE_TTL,
-            fn() => Teacher::query()
-                ->select('id', 'user_id', 'nip', 'created_at', 'updated_at')
-                ->with(['user:id,username,full_name,role'])
-                ->where('user_id', $id)
-                ->first()
-        );
+        return Teacher::query()
+            ->select('id', 'user_id', 'nip', 'status', 'created_at', 'updated_at')
+            ->with(['user:id,username,full_name,role'])
+            ->where('user_id', $id)
+            ->first();
     }
 
     // =========================================================================
@@ -118,6 +108,7 @@ class TeacherService
             // 1. Update teacher table
             $teacher->update([
                 'nip' => $teacherData['nip'] ?? $teacher->nip,
+                'status' => $teacherData['status'] ?? $teacher->status,
             ]);
 
             // 2. Update related user table
