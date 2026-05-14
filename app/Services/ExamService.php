@@ -34,11 +34,11 @@ class ExamService
     public function getExamById($id)
     {
         $exam = Exam::where('id', $id)
-            ->with('subject:id,name', 'class:id,name')
+            ->with('lesson')
             ->with(['questions' => function ($query) {
                 $query->select('id', 'question', 'type', 'lesson_id', 'options', 'correct_answer', 'rubric', 'max_points');
             }])
-            ->select('id', 'name', 'subject_id', 'class_id', 'status', 'created_at', 'updated_at')
+            ->select('id', 'name', 'status', 'lesson_id', 'created_at', 'updated_at')
             ->first();
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');

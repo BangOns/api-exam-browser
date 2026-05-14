@@ -17,11 +17,10 @@ class ExamScheduleResource extends JsonResource
         return [
             'id'         => $this->id,
             'exam'       => $this->whenLoaded('exam', fn() => [
-                // 'id'   => $this->exam->id,
+                'id'   => $this->exam->id,
                 'name' => $this->exam->name,
                 'subject' => $this->exam->subject?->name,
                 'class' => $this->exam->class?->name,
-
             ]),
             'exam_date'  => $this->exam_date?->format('Y-m-d'),
             'start_time' => $this->start_time,
