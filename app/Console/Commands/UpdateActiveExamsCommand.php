@@ -32,6 +32,7 @@ class UpdateActiveExamsCommand extends Command
             if ($now->lt($startDateTime)) {
                 if ($schedule->status !== 'scheduled') {
                     $schedule->update(['status' => 'scheduled']);
+                    $schedule->exam->update(['status' => 'scheduled']);
                     $this->info("Schedule {$schedule->id} updated to scheduled");
                 }
 
@@ -41,6 +42,8 @@ class UpdateActiveExamsCommand extends Command
             if ($now->gte($startDateTime) && $now->lt($endDateTime)) {
                 if ($schedule->status !== 'active') {
                     $schedule->update(['status' => 'active']);
+                    $schedule->exam->update(['status' => 'active']);
+
                     $this->info("Schedule {$schedule->id} updated to active");
                 }
 
@@ -50,6 +53,7 @@ class UpdateActiveExamsCommand extends Command
             if ($now->gte($endDateTime)) {
                 if ($schedule->status !== 'completed') {
                     $schedule->update(['status' => 'completed']);
+                    $schedule->exam->update(['status' => 'completed']);
                     $this->info("Schedule {$schedule->id} updated to completed");
                 }
             }

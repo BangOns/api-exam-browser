@@ -7,6 +7,7 @@ use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ExamTokenController extends Controller
 {
@@ -21,6 +22,7 @@ class ExamTokenController extends Controller
     {
         try {
             $token = $this->examAttemptService->generateNewToken($examId);
+            Log::info('[ExamToken] Token baru di-generate', ['token' => $token]);
 
             $this->activityLogService->log($request->user(), "generate", 'Exam Token');
 

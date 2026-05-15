@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\SecurityConfigService;
+use Illuminate\Support\Facades\Log;
 
 class ExamAttemptService
 {
@@ -35,6 +36,7 @@ class ExamAttemptService
     }
     public function generateNewToken(string $examId): ExamToken
     {
+        Log::info('[ExamToken] Token baru di-generate', ['exam_id' => $examId]);
         $exam = Exam::find($examId);
         if (!$exam) {
             throw new DataNotFound('Ujian tidak ditemukan');

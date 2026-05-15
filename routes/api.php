@@ -39,7 +39,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
             Route::middleware(['ability:role:teacher'])->group(function () {
                 Route::apiResource('question', QuestionController::class);
-                Route::apiResource('exam', ExamController::class);
                 Route::apiResource('lesson', LessonController::class);
             });
             Route::middleware(['ability:role:student'])->group(function () {
@@ -49,6 +48,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             });
             Route::middleware(['ability:role:teacher,role:admin'])->group(function () {
                 Route::apiResource('exam-schedules', ExamScheduleController::class);
+                Route::apiResource('exam', ExamController::class);
                 Route::get('exams/{exam}/monitor', [ExamController::class, 'monitor']);
             });
             Route::get('/user', function (Request $request) {

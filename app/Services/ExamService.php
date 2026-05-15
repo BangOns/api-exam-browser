@@ -23,7 +23,7 @@ class ExamService
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
         $query = Exam::select('id', 'name', 'lesson_id', 'status', 'created_at', 'updated_at')
-            ->with('lesson');
+            ->with('lesson', 'schedules', 'tokens');
 
         if (!empty($search)) {
             $query = SearchService::apply($query, $search, 'search_vector');

@@ -66,16 +66,50 @@ class ExamScheduleService
         return $scheduleRequest;
     }
 
+
     public function updateSchedule(array $data, string $id): ExamSchedule
     {
         $schedule = ExamSchedule::where('id', $id)->first();
-
         if (!$schedule) {
             throw new DataNotFound('Jadwal ujian tidak ditemukan');
         }
-
-        $scheduleRequest = DB::transaction(function () use ($data, $schedule) {
+        $now = Carbon::now();
+        $startDateTime = Carbon::parse(
+            "{$data['exam_date']} {$data['start_time']}"
+        );
+        $endDateTime = Carbon::parse(
+            "{$data['exam_date']} {$data['end_time']}"
+        );
+        $status = match (true) {
+            $now->lt($startDateTime) => 'scheduled',
+            $now->gte($startDateTime) && $now->lt($endDateTime) => 'active',
+            default => 'completed',
+        };
+        $data['status'] = $status;
+        $scheduleRequest = DB::transaction(function () use ($data, $schedule, $status) {
             $schedule->update($data);
+
+            // Sync exam status berdasarkan prioritas semua schedule
+            $exam = $schedule->exam;
+            if ($exam) {
+                $allSchedules = $exam->schedules()->get();
+
+                $examStatus = 'completed';
+                foreach ($allSchedules as $s) {
+                    if ($s->status === 'active') {
+                        $examStatus = 'active';
+                        break;
+                    }
+                    if ($s->status === 'scheduled') {
+                        $examStatus = 'scheduled';
+                    }
+                }
+
+                if ($exam->status !== $examStatus) {
+                    $exam->update(['status' => $examStatus]);
+                }
+            }
+
             return $schedule->fresh('exam');
         });
         $this->flushListCache();
