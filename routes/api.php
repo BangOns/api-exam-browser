@@ -42,11 +42,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 Route::apiResource('lesson', LessonController::class);
             });
             Route::middleware(['ability:role:student'])->group(function () {
+
                 Route::post('exam-attempts/{exam}/enter', [ExamAttemptController::class, 'enter']);
                 Route::post('exam-attempts/{exam}/exit', [ExamAttemptController::class, 'exit']);
                 Route::post('exam-attempts/{exam}/submit', [ExamAttemptController::class, 'submit']);
             });
-            Route::middleware(['ability:role:teacher,role:admin'])->group(function () {
+            Route::middleware(['ability:role:teacher,role:admin,role:student'])->group(function () {
                 Route::apiResource('exam-schedules', ExamScheduleController::class);
                 Route::apiResource('exam', ExamController::class);
                 Route::get('exams/{exam}/monitor', [ExamController::class, 'monitor']);

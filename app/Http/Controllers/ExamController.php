@@ -8,6 +8,7 @@ use App\Services\ActivityLogService;
 use App\Services\ExamService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ExamController extends Controller
 {
@@ -21,7 +22,7 @@ class ExamController extends Controller
      */
     public function index(Request $request)
     {
-        $paginator = $this->examService->getAllExams($request->query('per_page', 5), $request->query('search', ''));
+        $paginator = $this->examService->getAllExams($request->query('per_page', 5), $request->query('search', ''), $request->query('status', ''));
         return $this->successResponse(
             ExamResource::collection($paginator),
             'Data berhasil diambil',

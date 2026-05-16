@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\StudentExamAttempt;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ExamService
 {
@@ -17,17 +18,22 @@ class ExamService
     /**
      * Create a new class instance.
      */
-    public function getAllExams(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    {
-        // Batasi perPage agar tidak bisa di-abuse
+    public function getAllExams(
+        int $perPage = 5,
+        string $search = '',
+        string $status = ''
+    ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
-
+        Log::info($status);
         $query = Exam::select('id', 'name', 'lesson_id', 'status', 'created_at', 'updated_at')
-            ->with('lesson', 'schedules', 'tokens');
+            ->with('lesson', 'schedules', 'tokens')
+            ->when($status, function ($q) use ($status) {
+                $q->where('status', $status);
+            });
 
-        if (!empty($search)) {
-            $query = SearchService::apply($query, $search, 'search_vector');
-        }
+        // if (!empty($search)) {
+        //     $query = SearchService::apply($query, $search, 'search_vector');
+        // }
 
         return $query->paginate($perPage);
     }
