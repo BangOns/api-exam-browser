@@ -28,9 +28,10 @@ class ExamService
         $query = Exam::select('id', 'name', 'lesson_id', 'status', 'created_at', 'updated_at')
             ->with('lesson', 'schedules', 'tokens')
             ->when($status, function ($q) use ($status) {
-                $q->where('status', $status);
-            });
+                $statuses = is_array($status) ? $status : explode(',', $status);
 
+                $q->whereIn('status', $statuses);
+            });
         // if (!empty($search)) {
         //     $query = SearchService::apply($query, $search, 'search_vector');
         // }

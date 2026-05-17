@@ -16,6 +16,10 @@ class Question extends Model
         'rubric',
         'max_points',
     ];
+
+    protected $casts = [
+        'options' => 'array',
+    ];
     protected $table  = "questions";
     protected $keyType = 'string';
     public $incrementing = false;

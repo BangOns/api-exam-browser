@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ExamAttempt\EnterExamRequest;
 use App\Http\Requests\ExamAttempt\SubmitExamRequest;
+use App\Http\Resources\ExamAttempt\ExamAttemptEnterResource;
 use App\Http\Resources\ExamAttempt\ExamAttemptResource;
 use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
@@ -30,14 +31,26 @@ class ExamAttemptController extends Controller
                 $request->validated('token')
             );
 
-            return $this->successResponse(new ExamAttemptResource($attempt), 'Berhasil memasuki ujian', 200);
+            $this->activityLogService->log(
+                $request->user(),
+                'enter',
+                'Exam Attempt'
+            );
+
+            return $this->successResponse(
+                new ExamAttemptResource($attempt),
+                'Berhasil memasuki ujian',
+                200
+            );
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
-            return $this->errorResponse($e->getMessage(), $statusCode);
-        } finally {
-            if (isset($attempt)) {
-                $this->activityLogService->log($request->user(), "enter", 'Exam Attempt');
-            }
+            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600
+                ? $e->getCode()
+                : 400;
+
+            return $this->errorResponse(
+                $e->getMessage(),
+                $statusCode
+            );
         }
     }
 
@@ -49,7 +62,7 @@ class ExamAttemptController extends Controller
 
             $attempt = $this->examAttemptService->exitExam($studentId, $examId, $type);
 
-            return $this->successResponse(new ExamAttemptResource($attempt), 'Berhasil keluar dari ujian (status disimpan)', 200);
+            return $this->successResponse(new ExamAttemptEnterResource($attempt), 'Berhasil keluar dari ujian (status disimpan)', 200);
         } catch (\Exception $e) {
             $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
             return $this->errorResponse($e->getMessage(), $statusCode);
@@ -82,7 +95,7 @@ class ExamAttemptController extends Controller
             $this->activityLogService->log($user, "submit", 'Exam Attempt');
 
             return $this->successResponse(
-                new ExamAttemptResource($attempt),
+                new ExamAttemptEnterResource($attempt),
                 'Ujian berhasil disubmit',
                 200
             );

@@ -18,7 +18,7 @@ class ExamResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "name" => e($this->name),
+            "name" => $this->name,
             "lesson" => [
                 "id" => $this->lesson?->id ?? null,
                 "class" => [
@@ -31,12 +31,12 @@ class ExamResource extends JsonResource
                 ],
             ],
             "status" => $this->status,
-            "schedule" => $this->whenLoaded('schedules', function () {
+            "schedule" => $this->whenLoaded("schedules", function () {
                 return $this->schedules->last()
                     ? new ExamScheduleResource($this->schedules->last())
                     : null;
             }),
-            "token" => $this->whenLoaded('tokens', function () {
+            "token" => $this->whenLoaded("tokens", function () {
                 return $this->tokens->last()
                     ? new ExamTokenResource($this->tokens->last())
                     : null;
@@ -45,16 +45,14 @@ class ExamResource extends JsonResource
                 return [
                     "id" => $question->id,
                     "type" => $question->type,
-                    "question" => e($question->question),
+                    "question" => $question->question,
                     "options" => $question->options
                         ? json_decode($question->options, true)
                         : [],
                     "answer" => $question->correct_answer
-                        ? e($question->correct_answer)
+                        ? $question->correct_answer
                         : null,
-                    "rubric" => $question->rubric
-                        ? e($question->rubric)
-                        : null,
+                    "rubric" => $question->rubric ? $question->rubric : null,
                 ];
             }),
         ];
