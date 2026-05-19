@@ -27,15 +27,15 @@ class ExamAttemptService
      * FIX: orWhereHas tanpa grouping menyebabkan query bocor ke semua record.
      * Sekarang di-wrap dengan where() closure agar OR hanya berlaku di dalam kondisi search.
      */
-    public function getAllClasses(
+    public function getAllExamAttempts(
         int $perPage = 5,
         string $search = "",
+        string $examId = "",
     ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
         return StudentExamAttempt::with(["exam", "student", "answers"])
             ->when($search, function ($q) use ($search) {
-                // ✅ FIX: Wrap orWhereHas dalam closure where() agar tidak bocor
                 $q->where(function ($inner) use ($search) {
                     $inner
                         ->whereHas(
@@ -56,9 +56,11 @@ class ExamAttemptService
                         );
                 });
             })
+            ->when($examId, function ($q) use ($examId) {
+                $q->whereHas("exam", fn($eq) => $eq->where("id", $examId));
+            })
             ->paginate($perPage);
     }
-
     /**
      * Generate token baru untuk exam, token sebelumnya otomatis non-aktif.
      */

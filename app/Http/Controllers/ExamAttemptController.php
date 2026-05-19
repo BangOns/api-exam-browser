@@ -17,8 +17,23 @@ class ExamAttemptController extends Controller
 
     public function __construct(
         private ExamAttemptService $examAttemptService,
-        private ActivityLogService $activityLogService
+        private ActivityLogService $activityLogService,
     ) {}
+
+    public function index(Request $request, string $examId)
+    {
+        $attempts = $this->examAttemptService->getAllExamAttempts(
+            $request->perPage ?? 5,
+            $request->search ?? "",
+            $examId,
+        );
+
+        return $this->successResponse(
+            ExamAttemptResource::collection($attempts),
+            "Berhasil mengambil daftar ujian",
+            200,
+        );
+    }
 
     public function enter(EnterExamRequest $request, string $examId)
     {
@@ -28,47 +43,60 @@ class ExamAttemptController extends Controller
             $attempt = $this->examAttemptService->enterExam(
                 $studentId,
                 $examId,
-                $request->validated('token')
+                $request->validated("token"),
             );
 
             $this->activityLogService->log(
                 $request->user(),
-                'enter',
-                'Exam Attempt'
+                "enter",
+                "Exam Attempt",
             );
 
             return $this->successResponse(
                 new ExamAttemptResource($attempt),
-                'Berhasil memasuki ujian',
-                200
+                "Berhasil memasuki ujian",
+                200,
             );
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600
-                ? $e->getCode()
-                : 400;
+            $statusCode =
+                $e->getCode() >= 400 && $e->getCode() < 600
+                    ? $e->getCode()
+                    : 400;
 
-            return $this->errorResponse(
-                $e->getMessage(),
-                $statusCode
-            );
+            return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
 
     public function exit(Request $request, string $examId)
     {
         try {
-            $type = $request->input('type') ?? null;
+            $type = $request->input("type") ?? null;
             $studentId = $request->user()->student->id;
 
-            $attempt = $this->examAttemptService->exitExam($studentId, $examId, $type);
+            $attempt = $this->examAttemptService->exitExam(
+                $studentId,
+                $examId,
+                $type,
+            );
 
-            return $this->successResponse(new ExamAttemptEnterResource($attempt), 'Berhasil keluar dari ujian (status disimpan)', 200);
+            return $this->successResponse(
+                new ExamAttemptEnterResource($attempt),
+                "Berhasil keluar dari ujian (status disimpan)",
+                200,
+            );
         } catch (\Exception $e) {
-            $statusCode = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 400;
+            $statusCode =
+                $e->getCode() >= 400 && $e->getCode() < 600
+                    ? $e->getCode()
+                    : 400;
             return $this->errorResponse($e->getMessage(), $statusCode);
         } finally {
             if (isset($attempt)) {
-                $this->activityLogService->log($request->user(), "exit", 'Exam Attempt');
+                $this->activityLogService->log(
+                    $request->user(),
+                    "exit",
+                    "Exam Attempt",
+                );
             }
         }
     }
@@ -81,7 +109,7 @@ class ExamAttemptController extends Controller
             $user = $request->user();
 
             if (!$user || !$user->student) {
-                throw new \Exception('Student tidak ditemukan', 404);
+                throw new \Exception("Student tidak ditemukan", 404);
             }
 
             $studentId = $user->student->id;
@@ -89,20 +117,21 @@ class ExamAttemptController extends Controller
             $attempt = $this->examAttemptService->submitExam(
                 $studentId,
                 $examId,
-                $validated['answers'] ?? []
+                $validated["answers"] ?? [],
             );
 
-            $this->activityLogService->log($user, "submit", 'Exam Attempt');
+            $this->activityLogService->log($user, "submit", "Exam Attempt");
 
             return $this->successResponse(
                 new ExamAttemptEnterResource($attempt),
-                'Ujian berhasil disubmit',
-                200
+                "Ujian berhasil disubmit",
+                200,
             );
         } catch (\Exception $e) {
-            $statusCode = ($e->getCode() >= 400 && $e->getCode() < 600)
-                ? $e->getCode()
-                : 400;
+            $statusCode =
+                $e->getCode() >= 400 && $e->getCode() < 600
+                    ? $e->getCode()
+                    : 400;
 
             return $this->errorResponse($e->getMessage(), $statusCode);
         }

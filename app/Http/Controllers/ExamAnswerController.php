@@ -14,19 +14,22 @@ class ExamAnswerController extends Controller
     public function __construct(private ExamAnswerService $examAnswerService) {}
     public function index(Request $request)
     {
-        $paginator = $this->examAnswerService->getAllExamAnswers($request->query('per_page', 5), $request->query('search', ''));
+        $paginator = $this->examAnswerService->getAllExamAnswers(
+            $request->query("per_page", 5),
+            $request->query("search", ""),
+        );
         return $this->successResponse(
             ExamAnswerResource::collection($paginator),
-            'Data berhasil diambil',
+            "Data berhasil diambil",
             200,
             [
-                'pagination' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ]
-            ]
+                "pagination" => [
+                    "current_page" => $paginator->currentPage(),
+                    "last_page" => $paginator->lastPage(),
+                    "per_page" => $paginator->perPage(),
+                    "total" => $paginator->total(),
+                ],
+            ],
         );
     }
     // public function store(ExamAnswerRequest $request)
