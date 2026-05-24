@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ExamAttempt\EnterExamRequest;
 use App\Http\Requests\ExamAttempt\SubmitExamRequest;
 use App\Http\Resources\ExamAttempt\ExamAttemptEnterResource;
-use App\Http\Resources\ExamAttemptResource;
+use App\Http\Resources\ExamAttempt\ExamAttemptResource;
 use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
 use App\Traits\ApiResponse;
@@ -29,7 +29,6 @@ class ExamAttemptController extends Controller
             $request->search ?? "",
             $examId,
         );
-
         return $this->successResponse(
             ExamAttemptResource::collection($attempts),
             "Berhasil mengambil daftar ujian",

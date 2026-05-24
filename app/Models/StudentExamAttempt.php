@@ -9,27 +9,26 @@ use Illuminate\Support\Str;
 
 class StudentExamAttempt extends Model
 {
-    protected $table = 'student_exam_attempts';
-    protected $keyType = 'string';
+    protected $table = "student_exam_attempts";
+    protected $keyType = "string";
     public $incrementing = false;
 
     protected $fillable = [
-        'exam_id',
-        'student_id',
-        'status',
-        'exit_count',
-        'started_at',
-        'submitted_at',
-        'total_score',
-        'security_config',
-        'last_token_used',
-
+        "exam_id",
+        "student_id",
+        "status",
+        "exit_count",
+        "started_at",
+        "submitted_at",
+        "total_score",
+        "security_config",
+        "last_token_used",
     ];
 
     protected $casts = [
-        'started_at' => 'datetime',
-        'submitted_at' => 'datetime',
-        'security_config' => 'encrypted:array',
+        "started_at" => "datetime",
+        "submitted_at" => "datetime",
+        "security_config" => "encrypted:array",
     ];
 
     protected static function boot()
