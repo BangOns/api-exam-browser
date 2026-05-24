@@ -69,23 +69,24 @@ class ExamAttemptService
     ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return Student::with([
-            "user", // ✅ tambahkan ini
-            "class", // ✅ tambahkan ini
-            "examAttempts" => fn($q) => $q->when(
-                $examId,
-                fn($q) => $q->where("exam_id", $examId),
-            ),
-            "examAttempts.exam",
+        return StudentExamAttempt::with([
+            "student.user",
+            "student.class",
+            "exam",
         ])
-            ->when($search, fn($q) => $q->where("name", "like", "%{$search}%"))
-            ->when(
-                $examId,
-                fn($q) => $q->whereHas(
-                    "examAttempts",
-                    fn($inner) => $inner->where("exam_id", $examId),
-                ),
-            )
+            ->when($examId, function ($query) use ($examId) {
+                $query->where("exam_id", $examId);
+            })
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->whereHas("student.user", function ($sq) use ($search) {
+                        $sq->where("full_name", "like", "%{$search}%")
+                            ->orWhere("username", "like", "%{$search}%");
+                    })->orWhereHas("student", function ($sq) use ($search) {
+                        $sq->where("nisn", "like", "%{$search}%");
+                    });
+                });
+            })
             ->latest()
             ->paginate($perPage);
     }
