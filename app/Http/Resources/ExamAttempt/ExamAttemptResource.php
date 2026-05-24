@@ -13,7 +13,6 @@ class ExamAttemptResource extends JsonResource
             "nama" => $this->user->name,
             "nisn" => $this->nisn,
             "kelas" => $this->class->name, // sesuaikan kolom di tabel classes
-
             "attempts" => $this->examAttempts->map(
                 fn($attempt) => [
                     "id" => $attempt->id,

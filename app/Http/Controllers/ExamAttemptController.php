@@ -24,7 +24,6 @@ class ExamAttemptController extends Controller
 
     public function index(Request $request, string $examId)
     {
-        Log::info("Id", Auth::id());
         $attempts = $this->examAttemptService->getAllExamAttempts(
             $request->perPage ?? 5,
             $request->search ?? "",
@@ -56,7 +55,7 @@ class ExamAttemptController extends Controller
             );
 
             return $this->successResponse(
-                new ExamAttemptResource($attempt),
+                new ExamAttemptEnterResource($attempt),
                 "Berhasil memasuki ujian",
                 200,
             );

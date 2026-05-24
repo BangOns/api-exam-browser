@@ -94,8 +94,6 @@ class ExamAttemptService
      */
     public function generateNewToken(string $examId): ExamToken
     {
-        Log::info("[ExamToken] Token baru di-generate", ["exam_id" => $examId]);
-
         $exam = Exam::find($examId);
         if (!$exam) {
             throw new DataNotFound("Ujian tidak ditemukan");
@@ -260,18 +258,17 @@ class ExamAttemptService
     public function submitExam(
         string $studentId,
         string $examId,
-        array $submittedAnswers = [],
+        array $submittedAnswers = []
     ): StudentExamAttempt {
         return DB::transaction(function () use (
             $studentId,
             $examId,
-            $submittedAnswers,
+            $submittedAnswers
         ) {
             $attempt = StudentExamAttempt::where("exam_id", $examId)
                 ->where("student_id", $studentId)
                 ->lockForUpdate()
                 ->first();
-
             if (!$attempt) {
                 throw new DataNotFound("Anda belum masuk ke ujian ini");
             }
@@ -279,30 +276,27 @@ class ExamAttemptService
             if ($attempt->status === self::SUBMITTED) {
                 return $attempt;
             }
-
             $examAnswerService = app(ExamAnswerService::class);
             $examAnswerService->saveAnswersBulk(
                 $attempt->id,
                 $submittedAnswers,
             );
-
             $answers = $attempt->answers()->with("question")->get();
             $totalScore = $answers->sum("score");
-
-            // Hitung jumlah soal essay yang belum dinilai (score masih 0)
-            $pendingEssayCount = $answers
-                ->filter(
-                    fn($a) => $a->question->type === "essay" && $a->score == 0,
-                )
-                ->count();
+            // // Hitung jumlah soal essay yang belum dinilai (score masih 0)
+            // $pendingEssayCount = $answers
+            //     ->filter(
+            //         fn($a) => $a->question->type === "Essay" && $a->score == 0,
+            //     )
+            //     ->count();
 
             $attempt->update([
                 "status" => self::SUBMITTED,
                 "submitted_at" => now(),
                 "total_score" => $totalScore,
-                // ✅ FIX: Tandai apakah score sudah final atau masih menunggu penilaian essay
-                "is_score_final" => $pendingEssayCount === 0,
-                "pending_essay_count" => $pendingEssayCount,
+                // // ✅ FIX: Tandai apakah score sudah final atau masih menunggu penilaian essay
+                // "is_score_final" => $pendingEssayCount === 0,
+                // "pending_essay_count" => $pendingEssayCount,
             ]);
 
             return $attempt->fresh();
