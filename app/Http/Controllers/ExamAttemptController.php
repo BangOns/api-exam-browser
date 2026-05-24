@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ExamAttempt\EnterExamRequest;
 use App\Http\Requests\ExamAttempt\SubmitExamRequest;
 use App\Http\Resources\ExamAttempt\ExamAttemptEnterResource;
-use App\Http\Resources\ExamAttempt\ExamAttemptResource;
+use App\Http\Resources\ExamAttemptResource;
 use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ExamAttemptController extends Controller
 {
@@ -22,6 +24,7 @@ class ExamAttemptController extends Controller
 
     public function index(Request $request, string $examId)
     {
+        Log::info("Id", Auth::id());
         $attempts = $this->examAttemptService->getAllExamAttempts(
             $request->perPage ?? 5,
             $request->search ?? "",

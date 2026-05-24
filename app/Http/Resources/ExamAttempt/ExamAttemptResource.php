@@ -1,31 +1,35 @@
 <?php
+namespace App\Http\Resources;
 
-namespace App\Http\Resources\ExamAttempt;
-
-use App\Http\Resources\ExamAnswer\ExamAnswerResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ExamAttemptResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
-            'id' => $this->id,
-            'status' => $this->status,
-            'exit_count' => $this->exit_count,
-            'started_at' => $this->started_at,
-            'answers' => ExamAnswerResource::collection($this->whenLoaded('answers')),
-            'submitted_at' => $this->submitted_at,
-            'total_score' => $this->total_score,
-            'security_config' => $this->security_config,
-            'created_at' => $this->created_at,
-            'updated_at' => $this->updated_at,
+            "id" => $this->id,
+            "nama" => $this->user->name,
+            "nisn" => $this->nisn,
+            "kelas" => $this->class->name, // sesuaikan kolom di tabel classes
+
+            "attempts" => $this->examAttempts->map(
+                fn($attempt) => [
+                    "id" => $attempt->id,
+                    "exam" => $attempt->exam->title,
+                    "status" => $attempt->status,
+                    "exit_count" => $attempt->exit_count,
+                    "total_score" => $attempt->total_score,
+                    "started_at" => $attempt->started_at?->format("d M Y, H:i"),
+                    "submitted_at" => $attempt->submitted_at?->format(
+                        "d M Y, H:i",
+                    ),
+                    "last_activity_at" => $attempt->last_activity_at?->format(
+                        "d M Y, H:i",
+                    ),
+                ],
+            ),
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Exceptions\DataNotFound;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamToken;
+use App\Models\Student;
 use App\Models\StudentExamAttempt;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +28,40 @@ class ExamAttemptService
      * FIX: orWhereHas tanpa grouping menyebabkan query bocor ke semua record.
      * Sekarang di-wrap dengan where() closure agar OR hanya berlaku di dalam kondisi search.
      */
+    // public function getAllExamAttempts(
+    //     int $perPage = 5,
+    //     string $search = "",
+    //     string $examId = "",
+    // ): LengthAwarePaginator {
+    //     $perPage = min($perPage, self::MAX_PER_PAGE);
+
+    //     return StudentExamAttempt::with(["exam", "student", "answers"])
+    //         ->when($search, function ($q) use ($search) {
+    //             $q->where(function ($inner) use ($search) {
+    //                 $inner
+    //                     ->whereHas(
+    //                         "student",
+    //                         fn($sq) => $sq->where(
+    //                             "name",
+    //                             "like",
+    //                             "%{$search}%",
+    //                         ),
+    //                     )
+    //                     ->orWhereHas(
+    //                         "exam",
+    //                         fn($eq) => $eq->where(
+    //                             "title",
+    //                             "like",
+    //                             "%{$search}%",
+    //                         ),
+    //                     );
+    //             });
+    //         })
+    //         ->when($examId, function ($q) use ($examId) {
+    //             $q->whereHas("exam", fn($eq) => $eq->where("id", $examId));
+    //         })
+    //         ->paginate($perPage);
+    // }
     public function getAllExamAttempts(
         int $perPage = 5,
         string $search = "",
@@ -34,31 +69,24 @@ class ExamAttemptService
     ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        return StudentExamAttempt::with(["exam", "student", "answers"])
-            ->when($search, function ($q) use ($search) {
-                $q->where(function ($inner) use ($search) {
-                    $inner
-                        ->whereHas(
-                            "student",
-                            fn($sq) => $sq->where(
-                                "name",
-                                "like",
-                                "%{$search}%",
-                            ),
-                        )
-                        ->orWhereHas(
-                            "exam",
-                            fn($eq) => $eq->where(
-                                "title",
-                                "like",
-                                "%{$search}%",
-                            ),
-                        );
-                });
-            })
-            ->when($examId, function ($q) use ($examId) {
-                $q->whereHas("exam", fn($eq) => $eq->where("id", $examId));
-            })
+        return Student::with([
+            "user", // ✅ tambahkan ini
+            "class", // ✅ tambahkan ini
+            "examAttempts" => fn($q) => $q->when(
+                $examId,
+                fn($q) => $q->where("exam_id", $examId),
+            ),
+            "examAttempts.exam",
+        ])
+            ->when($search, fn($q) => $q->where("name", "like", "%{$search}%"))
+            ->when(
+                $examId,
+                fn($q) => $q->whereHas(
+                    "examAttempts",
+                    fn($inner) => $inner->where("exam_id", $examId),
+                ),
+            )
+            ->latest()
             ->paginate($perPage);
     }
     /**
