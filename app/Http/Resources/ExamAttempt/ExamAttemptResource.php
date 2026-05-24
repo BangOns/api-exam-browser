@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\ExamAttempt;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -11,13 +11,15 @@ class ExamAttemptResource extends JsonResource
     {
         return [
             "id" => $this->id,
-            "nama" => $this->user->name,
-            "nisn" => $this->nisn,
-            "kelas" => $this->class->name, // sesuaikan kolom di tabel classes
-            "attempts" => $this->examAttempts->map(
-                fn($attempt) => [
+            "nama" => $this->student->user->full_name,
+            "nisn" => $this->student->nisn,
+            "kelas" => $this->student->class->name, // sesuaikan kolom di tabel classes
+            "attempts" => $this->student->examAttempts->map(function (
+                $attempt,
+            ) {
+                return [
                     "id" => $attempt->id,
-                    "exam" => $attempt->exam->title,
+                    "exam" => $attempt->exam->name,
                     "status" => $attempt->status,
                     "exit_count" => $attempt->exit_count,
                     "total_score" => $attempt->total_score,
@@ -28,8 +30,8 @@ class ExamAttemptResource extends JsonResource
                     "last_activity_at" => $attempt->last_activity_at?->format(
                         "d M Y, H:i",
                     ),
-                ],
-            ),
+                ];
+            }),
         ];
     }
 }
