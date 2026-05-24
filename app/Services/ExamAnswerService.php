@@ -11,47 +11,58 @@ use Illuminate\Support\Str;
 
 class ExamAnswerService
 {
-
     // Batas maksimum item per halaman
-    private const MAX_PER_PAGE  = 100;
-    public function getAllExamAnswers(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    {
+    private const MAX_PER_PAGE = 100;
+    public function getAllExamAnswers(
+        int $perPage = 5,
+        string $search = "",
+    ): LengthAwarePaginator {
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-
-        return StudentExamAnswer::when($search, fn($q) => $q->where('answer', 'like', "%{$search}%"))
-            ->paginate($perPage);
+        return StudentExamAnswer::when(
+            $search,
+            fn($q) => $q->where("answer", "like", "%{$search}%"),
+        )->paginate($perPage);
     }
 
     public function saveAnswer($attempId, $questionId, $answer)
     {
-        $question = Question::where('id', $questionId)->first();
+        $question = Question::where("id", $questionId)->first();
         $score = 0;
         $isCorrect = false;
 
         if (!isset($question)) {
-            throw new DataNotFound('Soal tidak ditemukan'); // Harus pakai throw, bukan return
+            throw new DataNotFound("Soal tidak ditemukan"); // Harus pakai throw, bukan return
         }
 
-        if ($question->type === 'Multiple Choice') {
-            $score = $answer === $question->correct_answer ? $question->max_points : 0;
+        if ($question->type === "Multiple Choice") {
+            $score =
+                $answer === $question->correct_answer
+                    ? $question->max_points
+                    : 0;
             $isCorrect = $answer === $question->correct_answer;
         }
 
-        $studentAnswer = DB::transaction(function () use ($attempId, $questionId, $answer, $isCorrect, $score) {
+        $studentAnswer = DB::transaction(function () use (
+            $attempId,
+            $questionId,
+            $answer,
+            $isCorrect,
+            $score,
+        ) {
             // Gunakan updateOrCreate agar jawaban bisa diperbarui jika siswa mengganti jawaban
             return StudentExamAnswer::updateOrCreate(
                 [
-                    'student_exam_attempt_id' => $attempId,
-                    'question_id' => $questionId,
+                    "student_exam_attempt_id" => $attempId,
+                    "question_id" => $questionId,
                 ],
                 [
-                    'answer' => $answer,
-                    'score' => $score,
-                    'is_correct' => $isCorrect,
-                    'answered_at' => now(),
-                ]
+                    "answer" => $answer,
+                    "score" => $score,
+                    "is_correct" => $isCorrect,
+                    "answered_at" => now(),
+                ],
             );
         });
         return $studentAnswer;
@@ -66,9 +77,9 @@ class ExamAnswerService
         $questionIds = [];
         $validAnswers = [];
         foreach ($submittedAnswers as $entry) {
-            if (isset($entry['question_id']) && isset($entry['answer'])) {
-                $questionIds[] = $entry['question_id'];
-                $validAnswers[$entry['question_id']] = $entry['answer'];
+            if (isset($entry["question_id"]) && isset($entry["answer"])) {
+                $questionIds[] = $entry["question_id"];
+                $validAnswers[$entry["question_id"]] = $entry["answer"];
             }
         }
 
@@ -77,26 +88,33 @@ class ExamAnswerService
         }
 
         // 1. Tarik semua data Questions sekaligus (N+1 Select dihindari)
-        $questions = Question::whereIn('id', array_unique($questionIds))->get()->keyBy('id');
-
-        // 2. Tarik semua jawaban yang sudah ada untuk attempt ini (N+1 UpdateOrCreate dihindari)
-        $existingAnswers = StudentExamAnswer::where('student_exam_attempt_id', $attemptId)
-            ->whereIn('question_id', array_unique($questionIds))
+        $questions = Question::whereIn("id", array_unique($questionIds))
             ->get()
-            ->keyBy('question_id');
-
+            ->keyBy("id");
+        // 2. Tarik semua jawaban yang sudah ada untuk attempt ini (N+1 UpdateOrCreate dihindari)
+        $existingAnswers = StudentExamAnswer::where(
+            "student_exam_attempt_id",
+            $attemptId,
+        )
+            ->whereIn("question_id", array_unique($questionIds))
+            ->get()
+            ->keyBy("question_id");
         $now = now()->toDateTimeString();
         $upserts = [];
 
         foreach ($validAnswers as $questionId => $answerText) {
             $question = $questions->get($questionId);
-            if (!$question) continue;
-
+            if (!$question) {
+                continue;
+            }
             $score = 0;
             $isCorrect = false;
-
-            if ($question->type === 'Multiple Choice') {
-                $isCorrect = ($answerText === $question->correct_answer);
+            if ($question->type === "Multiple Choice") {
+                $isCorrect = $answerText === $question->correct_answer;
+                $score = $isCorrect ? $question->max_points : 0;
+            }
+            if ($question->type === "Essay") {
+                $isCorrect = $answerText === $question->rubric;
                 $score = $isCorrect ? $question->max_points : 0;
             }
 
@@ -105,28 +123,31 @@ class ExamAnswerService
             $id = $existing ? $existing->id : (string) Str::uuid();
 
             $upserts[] = [
-                'id' => $id,
-                'student_exam_attempt_id' => $attemptId,
-                'question_id' => $questionId,
-                'answer' => $answerText,
-                'score' => $score,
-                'is_correct' => $isCorrect,
-                'answered_at' => $now,
-                'created_at' => $existing ? $existing->created_at->toDateTimeString() : $now,
-                'updated_at' => $now,
+                "id" => $id,
+                "student_exam_attempt_id" => $attemptId,
+                "question_id" => $questionId,
+                "answer" => $answerText,
+                "score" => $score,
+                "is_correct" => $isCorrect,
+                "answered_at" => $now,
+                "created_at" => $existing
+                    ? $existing->created_at->toDateTimeString()
+                    : $now,
+                "updated_at" => $now,
             ];
         }
 
         if (!empty($upserts)) {
-            DB::transaction(function () use ($upserts) {
-                // Upsert bulk berdasarkan primary key 'id'
-                // Ini akan mengupdate data lama yang punya id sama, dan menginsert data dengan id baru
-                StudentExamAnswer::upsert(
-                    $upserts,
-                    ['student_exam_attempt_id', 'question_id'],
-                    ['answer', 'score', 'is_correct', 'answered_at', 'updated_at']
-                );
-            });
+            StudentExamAnswer::upsert(
+                $upserts,
+                ["student_exam_attempt_id", "question_id"],
+                ["answer", "score", "is_correct", "answered_at", "updated_at"],
+            );
+            // DB::transaction(function () use ($upserts) {
+            //     // Upsert bulk berdasarkan primary key 'id'
+            //     // Ini akan mengupdate data lama yang punya id sama, dan menginsert data dengan id baru
+
+            // });
         }
 
         return $upserts;
