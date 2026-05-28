@@ -80,8 +80,11 @@ class ExamAttemptService
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->whereHas("student.user", function ($sq) use ($search) {
-                        $sq->where("full_name", "like", "%{$search}%")
-                            ->orWhere("username", "like", "%{$search}%");
+                        $sq->where("full_name", "like", "%{$search}%")->orWhere(
+                            "username",
+                            "like",
+                            "%{$search}%",
+                        );
                     })->orWhereHas("student", function ($sq) use ($search) {
                         $sq->where("nisn", "like", "%{$search}%");
                     });
@@ -259,12 +262,12 @@ class ExamAttemptService
     public function submitExam(
         string $studentId,
         string $examId,
-        array $submittedAnswers = []
+        array $submittedAnswers = [],
     ): StudentExamAttempt {
         return DB::transaction(function () use (
             $studentId,
             $examId,
-            $submittedAnswers
+            $submittedAnswers,
         ) {
             $attempt = StudentExamAttempt::where("exam_id", $examId)
                 ->where("student_id", $studentId)
@@ -274,9 +277,9 @@ class ExamAttemptService
                 throw new DataNotFound("Anda belum masuk ke ujian ini");
             }
 
-            if ($attempt->status === self::SUBMITTED) {
-                return $attempt;
-            }
+            // if ($attempt->status === self::SUBMITTED) {
+            //     return $attempt;
+            // }
             $examAnswerService = app(ExamAnswerService::class);
             $examAnswerService->saveAnswersBulk(
                 $attempt->id,

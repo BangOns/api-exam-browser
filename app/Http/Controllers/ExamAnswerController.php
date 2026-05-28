@@ -32,6 +32,15 @@ class ExamAnswerController extends Controller
             ],
         );
     }
+    public function show(string $id)
+    {
+        $examAnswers = $this->examAnswerService->getExamAnswersByAttemptId($id);
+        return $this->successResponse(
+            ExamAnswerResource::collection($examAnswers),
+            "Data berhasil diambil",
+            200,
+        );
+    }
     // public function store(ExamAnswerRequest $request)
     // {
     //     $examAnswer = $this->examAnswerService->createExamAnswer($request->validated());

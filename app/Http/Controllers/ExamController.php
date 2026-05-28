@@ -8,33 +8,36 @@ use App\Services\ActivityLogService;
 use App\Services\ExamService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class ExamController extends Controller
 {
     use ApiResponse;
     public function __construct(
         private ExamService $examService,
-        private ActivityLogService $activityLogService
+        private ActivityLogService $activityLogService,
     ) {}
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $paginator = $this->examService->getAllExams($request->query('per_page', 5), $request->query('search', ''), $request->query('status', ''));
+        $paginator = $this->examService->getAllExams(
+            $request->query("per_page", 5),
+            $request->query("search", ""),
+            $request->query("status", ""),
+        );
         return $this->successResponse(
             ExamResource::collection($paginator),
-            'Data berhasil diambil',
+            "Data berhasil diambil",
             200,
             [
-                'pagination' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ]
-            ]
+                "pagination" => [
+                    "current_page" => $paginator->currentPage(),
+                    "last_page" => $paginator->lastPage(),
+                    "per_page" => $paginator->perPage(),
+                    "total" => $paginator->total(),
+                ],
+            ],
         );
     }
 
@@ -45,9 +48,13 @@ class ExamController extends Controller
     {
         $exam = $this->examService->createExam($request->validated());
 
-        $this->activityLogService->log($request->user(), "create", 'Exam');
+        $this->activityLogService->log($request->user(), "create", "Exam");
 
-        return $this->successResponse(new ExamResource($exam), 'Data berhasil ditambahkan', 201);
+        return $this->successResponse(
+            new ExamResource($exam),
+            "Data berhasil ditambahkan",
+            201,
+        );
     }
 
     /**
@@ -56,7 +63,11 @@ class ExamController extends Controller
     public function show(string $id)
     {
         $exam = $this->examService->getExamById($id);
-        return $this->successResponse(new ExamResource($exam), 'Data berhasil diambil', 200);
+        return $this->successResponse(
+            new ExamResource($exam),
+            "Data berhasil diambil",
+            200,
+        );
     }
 
     /**
@@ -66,9 +77,13 @@ class ExamController extends Controller
     {
         $exam = $this->examService->updateExam($request->validated(), $id);
 
-        $this->activityLogService->log($request->user(), "update", 'Exam');
+        $this->activityLogService->log($request->user(), "update", "Exam");
 
-        return $this->successResponse(new ExamResource($exam), 'Data berhasil diupdate', 200);
+        return $this->successResponse(
+            new ExamResource($exam),
+            "Data berhasil diupdate",
+            200,
+        );
     }
 
     /**
@@ -79,9 +94,9 @@ class ExamController extends Controller
         $exam = $this->examService->getExamById($id);
         $this->examService->deleteExam($id);
 
-        $this->activityLogService->log($request->user(), "delete", 'Exam');
+        $this->activityLogService->log($request->user(), "delete", "Exam");
 
-        return $this->successResponse(null, 'Data berhasil dihapus', 200);
+        return $this->successResponse(null, "Data berhasil dihapus", 200);
     }
 
     /**
@@ -90,6 +105,10 @@ class ExamController extends Controller
     public function monitor(string $id)
     {
         $monitoringData = $this->examService->monitorExam($id);
-        return $this->successResponse($monitoringData, 'Data monitoring berhasil diambil', 200);
+        return $this->successResponse(
+            $monitoringData,
+            "Data monitoring berhasil diambil",
+            200,
+        );
     }
 }
