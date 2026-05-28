@@ -47,6 +47,10 @@ Route::middleware(["auth:sanctum"])->group(function () {
             Route::apiResource("question", QuestionController::class);
             Route::apiResource("lesson", LessonController::class);
             Route::apiResource("exam-answers", ExamAnswerController::class);
+            Route::put("exam-attempts/{exam}/edit", [
+                ExamAttemptController::class,
+                "edit",
+            ]);
         });
         Route::middleware(["ability:role:student"])->group(function () {
             Route::post("exam-attempts/{exam}/enter", [

@@ -106,22 +106,51 @@ class ExamAttemptController extends Controller
     {
         try {
             $validated = $request->validated();
-
             $user = $request->user();
-
-            if (!$user || !$user->student) {
+            if (!$user || !$user->student()) {
                 throw new \Exception("Student tidak ditemukan", 404);
             }
 
-            $studentId = $user->student->id;
-
+            $idRole = $user->id;
             $attempt = $this->examAttemptService->submitExam(
-                $studentId,
+                $idRole,
                 $examId,
                 $validated["answers"] ?? [],
             );
 
             $this->activityLogService->log($user, "submit", "Exam Attempt");
+
+            return $this->successResponse(
+                new ExamAttemptEnterResource($attempt),
+                "Ujian berhasil disubmit",
+                200,
+            );
+        } catch (\Exception $e) {
+            $statusCode =
+                $e->getCode() >= 400 && $e->getCode() < 600
+                    ? $e->getCode()
+                    : 400;
+
+            return $this->errorResponse($e->getMessage(), $statusCode);
+        }
+    }
+    public function edit(SubmitExamRequest $request, string $examId)
+    {
+        try {
+            $validated = $request->validated();
+            $studentId = $request->input("student_id") ?? "";
+            $user = $request->user();
+            if (!$user || !$user->role === "teacher") {
+                throw new \Exception("User tidak ditemukan", 404);
+            }
+            $idRole = $studentId;
+            $attempt = $this->examAttemptService->submitExam(
+                $idRole,
+                $examId,
+                $validated["answers"] ?? [],
+            );
+
+            $this->activityLogService->log($user, "edit", "Exam Attempt");
 
             return $this->successResponse(
                 new ExamAttemptEnterResource($attempt),

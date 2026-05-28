@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Exceptions\DataNotFound;
+use App\Http\Requests\ExamAttempt\SubmitExamRequest;
 use App\Models\Question;
 use App\Models\StudentExamAnswer;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -25,7 +27,10 @@ class ExamAnswerService
             fn($q) => $q->where("answer", "like", "%{$search}%"),
         )->paginate($perPage);
     }
-
+    public function getExamAnswersByAttemptId(string $id): Collection
+    {
+        return StudentExamAnswer::where("student_exam_attempt_id", $id)->get();
+    }
     public function saveAnswer($attempId, $questionId, $answer)
     {
         $question = Question::where("id", $questionId)->first();
@@ -114,19 +119,23 @@ class ExamAnswerService
                 $score = $isCorrect ? $question->max_points : 0;
             }
             if ($question->type === "Essay") {
-                $isCorrect = $answerText === $question->rubric;
-                $score = $isCorrect ? $question->max_points : 0;
+                $existing = $existingAnswers->get($questionId);
+                // Jika sudah pernah dinilai manual, gunakan score lama
+                if ($existing && $existing->score !== null) {
+                    $score = intval($answerText);
+                } else {
+                    $isCorrect = $answerText === $question->rubric;
+                    $score = $isCorrect ? $question->max_points : 0;
+                }
             }
-
             // Cek apakah data jawaban sudah ada. Jika ada pakai ID lama, jika belom buat ID baru UUID.
             $existing = $existingAnswers->get($questionId);
             $id = $existing ? $existing->id : (string) Str::uuid();
-
             $upserts[] = [
                 "id" => $id,
                 "student_exam_attempt_id" => $attemptId,
                 "question_id" => $questionId,
-                "answer" => $answerText,
+                "answer" => $existing ? $existing->answer : $answerText,
                 "score" => $score,
                 "is_correct" => $isCorrect,
                 "answered_at" => $now,
@@ -136,18 +145,12 @@ class ExamAnswerService
                 "updated_at" => $now,
             ];
         }
-
         if (!empty($upserts)) {
             StudentExamAnswer::upsert(
                 $upserts,
                 ["student_exam_attempt_id", "question_id"],
                 ["answer", "score", "is_correct", "answered_at", "updated_at"],
             );
-            // DB::transaction(function () use ($upserts) {
-            //     // Upsert bulk berdasarkan primary key 'id'
-            //     // Ini akan mengupdate data lama yang punya id sama, dan menginsert data dengan id baru
-
-            // });
         }
 
         return $upserts;
