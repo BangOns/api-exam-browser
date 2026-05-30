@@ -140,8 +140,8 @@ class ExamAttemptController extends Controller
             $validated = $request->validated();
             $studentId = $request->input("student_id") ?? "";
             $user = $request->user();
-            if (!$user || !$user->role === "teacher") {
-                throw new \Exception("User tidak ditemukan", 404);
+            if (!$user || $user->role !== "teacher") {
+                throw new \Exception("Akses ditolak", 403);
             }
             $idRole = $studentId;
             $attempt = $this->examAttemptService->submitExam(
