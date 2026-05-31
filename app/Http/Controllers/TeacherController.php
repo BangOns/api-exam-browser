@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\DataNotFound;
-use App\Http\Requests\Class\ClassRequest;
 use App\Http\Requests\Teacher\TeacherRequest;
 use App\Http\Requests\Teacher\TeacherRequestUpdate;
 use App\Http\Resources\Teacher\TeacherResource;
@@ -20,36 +19,38 @@ class TeacherController extends Controller
      */
     public function __construct(
         private TeacherService $teacherService,
-        private ActivityLogService $activityLogService
+        private ActivityLogService $activityLogService,
     ) {}
     public function index(Request $request)
     {
-        $paginator = $this->teacherService->getAllTeachers(5, $request->query('search', ''));
+        $paginator = $this->teacherService->getAllTeachers(
+            5,
+            $request->query("search", ""),
+        );
         return $this->successResponse(
             TeacherResource::collection($paginator),
-            'Teacher retrieved successfully',
+            "Teacher retrieved successfully",
             200,
             [
-                'pagination' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ]
-            ]
+                "pagination" => [
+                    "current_page" => $paginator->currentPage(),
+                    "last_page" => $paginator->lastPage(),
+                    "per_page" => $paginator->perPage(),
+                    "total" => $paginator->total(),
+                ],
+            ],
         );
     }
 
     public function show(string $id)
     {
-
         $teacher = $this->teacherService->getTeacherById($id);
         if (!$teacher) {
-            throw new DataNotFound('Teacher tidak ditemukan');
+            throw new DataNotFound("Teacher tidak ditemukan");
         }
         return $this->successResponse(
             new TeacherResource($teacher),
-            'Kelas retrieved by id successfully',
+            "Kelas retrieved by id successfully",
             200,
         );
     }
@@ -62,11 +63,11 @@ class TeacherController extends Controller
     {
         $teacher = $this->teacherService->createTeacher($request->validated());
 
-        $this->activityLogService->log($request->user(), "create", 'Teacher');
+        $this->activityLogService->log($request->user(), "create", "Teacher");
 
         return $this->successResponse(
             new TeacherResource($teacher),
-            'Teacher created successfully',
+            "Teacher created successfully",
             201,
         );
     }
@@ -77,16 +78,19 @@ class TeacherController extends Controller
      */
     public function update(TeacherRequestUpdate $request, string $id)
     {
-        $teacher = $this->teacherService->updateTeacher($id, $request->validated());
+        $teacher = $this->teacherService->updateTeacher(
+            $id,
+            $request->validated(),
+        );
         if (!$teacher) {
-            throw new DataNotFound('Teacher tidak ditemukan');
+            throw new DataNotFound("Teacher tidak ditemukan");
         }
 
-        $this->activityLogService->log($request->user(), "update", 'Teacher');
+        $this->activityLogService->log($request->user(), "update", "Teacher");
 
         return $this->successResponse(
             null,
-            'Teacher updated successfully',
+            "Teacher updated successfully",
             200,
         );
     }
@@ -99,14 +103,14 @@ class TeacherController extends Controller
     {
         $teacher = $this->teacherService->deleteTeacher($id);
         if (!$teacher) {
-            throw new DataNotFound('Teacher tidak ditemukan');
+            throw new DataNotFound("Teacher tidak ditemukan");
         }
 
-        $this->activityLogService->log($request->user(), "delete", 'Teacher');
+        $this->activityLogService->log($request->user(), "delete", "Teacher");
 
         return $this->successResponse(
             null,
-            'Teacher deleted successfully',
+            "Teacher deleted successfully",
             200,
         );
     }

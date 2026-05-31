@@ -10,8 +10,6 @@ use App\Services\ActivityLogService;
 use App\Services\ExamAttemptService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class ExamAttemptController extends Controller
 {
