@@ -12,25 +12,31 @@ use Illuminate\Support\Facades\Log;
 
 class ExamService
 {
-
     // Batas maksimum item per halaman
-    private const MAX_PER_PAGE  = 100;
+    private const MAX_PER_PAGE = 100;
     /**
      * Create a new class instance.
      */
     public function getAllExams(
         int $perPage = 5,
-        string $search = '',
-        string $status = ''
+        string $search = "",
+        string $status = "",
     ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
         Log::info($status);
-        $query = Exam::select('id', 'name', 'lesson_id', 'status', 'created_at', 'updated_at')
-            ->with('lesson', 'schedules', 'tokens')
+        $query = Exam::select(
+            "id",
+            "name",
+            "lesson_id",
+            "status",
+            "created_at",
+            "updated_at",
+        )
+            ->with("lesson", "schedules", "tokens")
             ->when($status, function ($q) use ($status) {
-                $statuses = is_array($status) ? $status : explode(',', $status);
+                $statuses = is_array($status) ? $status : explode(",", $status);
 
-                $q->whereIn('status', $statuses);
+                $q->whereIn("status", $statuses);
             });
         // if (!empty($search)) {
         //     $query = SearchService::apply($query, $search, 'search_vector');
@@ -40,46 +46,66 @@ class ExamService
     }
     public function getExamById($id)
     {
-        $exam = Exam::where('id', $id)
-            ->with('lesson')
-            ->with(['questions' => function ($query) {
-                $query->select('id', 'question', 'type', 'lesson_id', 'options', 'correct_answer', 'rubric', 'max_points');
-            }])
-            ->select('id', 'name', 'status', 'lesson_id', 'created_at', 'updated_at')
-            ->first();
+        $exam = Exam::query()
+            ->with([
+                "lesson.class",
+                "lesson.subject",
+                "schedules",
+                "tokens",
+                "questions" => function ($query) {
+                    $query->select(
+                        "id",
+                        "question",
+                        "type",
+                        "lesson_id",
+                        "options",
+                        "correct_answer",
+                        "rubric",
+                        "max_points",
+                    );
+                },
+            ])
+            ->select(
+                "id",
+                "name",
+                "status",
+                "lesson_id",
+                "created_at",
+                "updated_at",
+            )
+            ->find($id);
+
         if (!$exam) {
-            throw new DataNotFound('Ujian tidak ditemukan');
+            throw new DataNotFound("Ujian tidak ditemukan");
         }
+
         return $exam;
     }
     public function createExam(array $data)
     {
-
         $exam = DB::transaction(function () use ($data) {
-
             $examCreate = Exam::create($data);
-            if (isset($data['questions'])) {
-                $examCreate->questions()->sync($data['questions']);
+            if (isset($data["questions"])) {
+                $examCreate->questions()->sync($data["questions"]);
             }
             return $examCreate;
         });
-
 
         return $exam;
     }
     public function updateExam(array $data, $id)
     {
-        $exam = Exam::where('id', $id)->first();
+        $exam = Exam::where("id", $id)->first();
 
         if (!$exam) {
-            throw new DataNotFound('Ujian tidak ditemukan');
+            throw new DataNotFound("Ujian tidak ditemukan");
         }
         // belum ditambahkan untuk id exam dan id question ke table exam_questions
 
         $resultExam = DB::transaction(function () use ($data, $exam) {
             $exam->update($data);
-            if (isset($data['questions'])) {
-                $exam->questions()->sync($data['questions']);
+            if (isset($data["questions"])) {
+                $exam->questions()->sync($data["questions"]);
             }
             return $exam->fresh();
         });
@@ -88,9 +114,9 @@ class ExamService
     }
     public function deleteExam($id)
     {
-        $exam = Exam::where('id', $id)->first();
+        $exam = Exam::where("id", $id)->first();
         if (!$exam) {
-            throw new DataNotFound('Ujian tidak ditemukan');
+            throw new DataNotFound("Ujian tidak ditemukan");
         }
         DB::transaction(function () use ($exam) {
             $exam->delete();
@@ -100,69 +126,90 @@ class ExamService
 
     public function monitorExam(string $id)
     {
-        $exam = Exam::where('id', $id)->first();
+        $exam = Exam::where("id", $id)->first();
 
         if (!$exam) {
-            throw new DataNotFound('Ujian tidak ditemukan');
+            throw new DataNotFound("Ujian tidak ditemukan");
         }
 
-        $totalStudents = Student::where('class_id', $exam->class_id)->count();
+        $totalStudents = Student::where("class_id", $exam->class_id)->count();
 
-        $belumMasuk = Student::where('class_id', $exam->class_id)
-            ->whereNotIn('id', function ($query) use ($id) {
-                $query->select('student_id')
-                    ->from('student_exam_attempts')
-                    ->where('exam_id', $id);
+        $belumMasuk = Student::where("class_id", $exam->class_id)
+            ->whereNotIn("id", function ($query) use ($id) {
+                $query
+                    ->select("student_id")
+                    ->from("student_exam_attempts")
+                    ->where("exam_id", $id);
             })
             ->get();
 
         // ambil data attempt dengan eager loading relasi student
-        $sedangMengerjakan = $this->getAttemptsByStatus($id, 'In Progress', ['started_at']);
-        $selesai = $this->getAttemptsByStatus($id, 'Submitted', ['started_at', 'submitted_at']);
-        $exited = $this->getAttemptsByStatus($id, 'Exited', ['started_at']);
+        $sedangMengerjakan = $this->getAttemptsByStatus($id, "In Progress", [
+            "started_at",
+        ]);
+        $selesai = $this->getAttemptsByStatus($id, "Submitted", [
+            "started_at",
+            "submitted_at",
+        ]);
+        $exited = $this->getAttemptsByStatus($id, "Exited", ["started_at"]);
         $pelanggaran = $this->getViolationAttempts($id);
 
         return [
-            'summary' => [
-                'total_students' => $totalStudents,
-                'belum_masuk_count' => $belumMasuk->count(),
-                'in_progress_count' => $sedangMengerjakan->count(),
-                'selesai_count' => $selesai->count(),
-                'pelanggaran_count' => $pelanggaran->count(),
+            "summary" => [
+                "total_students" => $totalStudents,
+                "belum_masuk_count" => $belumMasuk->count(),
+                "in_progress_count" => $sedangMengerjakan->count(),
+                "selesai_count" => $selesai->count(),
+                "pelanggaran_count" => $pelanggaran->count(),
             ],
-            'belum_masuk' => $belumMasuk,
-            'sedang_mengerjakan' => $sedangMengerjakan,
-            'selesai' => $selesai,
-            'exited' => $exited,
-            'pelanggaran' => $pelanggaran,
+            "belum_masuk" => $belumMasuk,
+            "sedang_mengerjakan" => $sedangMengerjakan,
+            "selesai" => $selesai,
+            "exited" => $exited,
+            "pelanggaran" => $pelanggaran,
         ];
     }
 
     /**
      * Get exam attempts by status
      */
-    private function getAttemptsByStatus(string $examId, string $status, array $extraFields = []): \Illuminate\Support\Collection
-    {
-        $baseFields = ['id', 'student_id', 'status', 'exit_count', 'started_at'];
+    private function getAttemptsByStatus(
+        string $examId,
+        string $status,
+        array $extraFields = [],
+    ): \Illuminate\Support\Collection {
+        $baseFields = [
+            "id",
+            "student_id",
+            "status",
+            "exit_count",
+            "started_at",
+        ];
         $selectFields = array_unique(array_merge($baseFields, $extraFields));
 
-        return StudentExamAttempt::where('exam_id', $examId)
-            ->where('status', $status)
-            ->with('student:id,nip,user_id')
+        return StudentExamAttempt::where("exam_id", $examId)
+            ->where("status", $status)
+            ->with("student:id,nip,user_id")
             ->select($selectFields)
             ->get()
-            ->map(fn($attempt) => $this->mapAttemptToArray($attempt, $extraFields));
+            ->map(
+                fn($attempt) => $this->mapAttemptToArray(
+                    $attempt,
+                    $extraFields,
+                ),
+            );
     }
 
     /**
      * Get violation attempts (exit_count > 0)
      */
-    private function getViolationAttempts(string $examId): \Illuminate\Support\Collection
-    {
-        return StudentExamAttempt::where('exam_id', $examId)
-            ->where('exit_count', '>', 0)
-            ->with('student:id,nip,user_id')
-            ->select('id', 'student_id', 'status', 'exit_count')
+    private function getViolationAttempts(
+        string $examId,
+    ): \Illuminate\Support\Collection {
+        return StudentExamAttempt::where("exam_id", $examId)
+            ->where("exit_count", ">", 0)
+            ->with("student:id,nip,user_id")
+            ->select("id", "student_id", "status", "exit_count")
             ->get()
             ->map(fn($attempt) => $this->mapAttemptToArray($attempt));
     }
@@ -173,20 +220,20 @@ class ExamService
     private function mapAttemptToArray($attempt, array $extraFields = []): array
     {
         $mapped = [
-            'attempt_id' => $attempt->id,
-            'student' => $attempt->student,
-            'status' => $attempt->status,
-            'exit_count' => $attempt->exit_count,
+            "attempt_id" => $attempt->id,
+            "student" => $attempt->student,
+            "status" => $attempt->status,
+            "exit_count" => $attempt->exit_count,
         ];
 
         // Add starting time if available
         if (isset($attempt->started_at)) {
-            $mapped['started_at'] = $attempt->started_at;
+            $mapped["started_at"] = $attempt->started_at;
         }
 
         // Add extra fields if present
         foreach ($extraFields as $field) {
-            if ($field !== 'started_at' && isset($attempt->$field)) {
+            if ($field !== "started_at" && isset($attempt->$field)) {
                 $mapped[$field] = $attempt->$field;
             }
         }
