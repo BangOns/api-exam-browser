@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\DataNotFound;
 use App\Models\Classes;
+use App\Models\Student;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -11,42 +12,47 @@ use Illuminate\Support\Facades\DB;
 class ClassService
 {
     // Durasi cache dalam detik
-    private const CACHE_TTL     = 60;
+    private const CACHE_TTL = 60;
 
     // Batas maksimum item per halaman
-    private const MAX_PER_PAGE  = 100;
-
+    private const MAX_PER_PAGE = 100;
 
     // =========================================================================
     // Read
     // =========================================================================
 
-    public function getAllClasses(int $perPage = 5, string $search = ''): LengthAwarePaginator
-    {
+    public function getAllClasses(
+        int $perPage = 5,
+        string $search = "",
+    ): LengthAwarePaginator {
         // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
-        $query = Classes::select('id', 'name', 'level', 'department', 'created_at', 'updated_at');
+        $query = Classes::select(
+            "id",
+            "name",
+            "level",
+            "department",
+            "created_at",
+            "updated_at",
+        );
 
         if (!empty($search)) {
-            $query = SearchService::apply($query, $search, 'search_vector');
+            $query = SearchService::apply($query, $search, "search_vector");
         }
 
         return $query->paginate($perPage);
     }
-
 
     public function getClassById(string $id): ?Classes
     {
         $data = Cache::remember(
             "class.{$id}",
             self::CACHE_TTL,
-            fn() => Classes::query()->find($id)?->toArray()
+            fn() => Classes::query()->find($id)?->toArray(),
         );
 
-        return $data
-            ? Classes::hydrate([$data])->first()
-            : null;
+        return $data ? Classes::hydrate([$data])->first() : null;
     }
 
     // =========================================================================
@@ -69,10 +75,10 @@ class ClassService
         $class = Classes::find($id);
 
         if (!$class) {
-            throw new DataNotFound('Kelas tidak ditemukan');
+            throw new DataNotFound("Kelas tidak ditemukan");
         }
         $updated = DB::transaction(function () use ($id, $data) {
-            return Classes::where('id', $id)->update($data);
+            return Classes::where("id", $id)->update($data);
         });
         if ($updated) {
             // Hapus cache spesifik + semua list yang mungkin tampilkan data ini
@@ -84,14 +90,21 @@ class ClassService
 
     public function deleteClass(string $id): bool
     {
-        // Fetch langsung dari DB
         $class = Classes::find($id);
 
         if (!$class) {
-            throw new DataNotFound('Kelas tidak ditemukan');
+            throw new DataNotFound("Kelas tidak ditemukan");
+        }
+        $studentExist = Student::where("class_id", $id)->exists();
+
+        if ($studentExist) {
+            throw new \Exception(
+                "Kelas tidak dapat dihapus karena masih memiliki siswa",
+            );
         }
 
-        $deleted = Classes::where('id', $id)->delete();
+        $deleted = Classes::where("id", $id)->delete();
+
         if ($deleted) {
             Cache::forget("class.{$id}");
         }
