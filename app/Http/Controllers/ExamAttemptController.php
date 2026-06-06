@@ -37,8 +37,10 @@ class ExamAttemptController extends Controller
     public function enter(EnterExamRequest $request, string $examId)
     {
         try {
+            if ($request->user()->role !== "student") {
+                throw new \Exception("Hanya siswa yang dapat memasuki ujian");
+            }
             $studentId = $request->user()->student->id;
-
             $attempt = $this->examAttemptService->enterExam(
                 $studentId,
                 $examId,
@@ -109,7 +111,7 @@ class ExamAttemptController extends Controller
                 throw new \Exception("Student tidak ditemukan", 404);
             }
 
-            $idRole = $user->id;
+            $idRole = $user->student->id;
             $attempt = $this->examAttemptService->submitExam(
                 $idRole,
                 $examId,
