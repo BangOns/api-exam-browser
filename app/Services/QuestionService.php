@@ -19,8 +19,8 @@ class QuestionService
     public function getAllQuestions(
         int $perPage = 5,
         string $search = "",
+        ?string $teacherId = null,
     ): LengthAwarePaginator {
-        // Batasi perPage agar tidak bisa di-abuse
         $perPage = min($perPage, self::MAX_PER_PAGE);
 
         $query = Question::select(
@@ -36,12 +36,19 @@ class QuestionService
             "updated_at",
         )->with("lesson");
 
+        if ($teacherId) {
+            $query->whereHas("lesson", function ($q) use ($teacherId) {
+                $q->where("teacher_id", $teacherId);
+            });
+        }
+
         if (!empty($search)) {
             $query = SearchService::apply($query, $search, "search_vector");
         }
 
         return $query->paginate($perPage);
     }
+
     public function getQuestionById($id)
     {
         $question = Question::where("id", $id)

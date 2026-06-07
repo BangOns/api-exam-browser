@@ -44,6 +44,34 @@ class ExamService
 
         return $query->paginate($perPage);
     }
+    public function getAllExamsByTeacherId(
+        int $perPage = 5,
+        string $search = "",
+        string $status = "",
+        ?string $teacherId = null,
+    ): LengthAwarePaginator {
+        $perPage = min($perPage, self::MAX_PER_PAGE);
+
+        $query = Exam::select(
+            "id",
+            "name",
+            "lesson_id",
+            "status",
+            "created_at",
+            "updated_at",
+        )
+            ->with("lesson", "schedules", "tokens")
+            ->when($status, function ($q) use ($status) {
+                $statuses = is_array($status) ? $status : explode(",", $status);
+
+                $q->whereIn("status", $statuses);
+            })
+            ->when($teacherId, function ($q) use ($teacherId) {
+                $q->whereRelation("lesson", "teacher_id", $teacherId);
+            });
+
+        return $query->paginate($perPage);
+    }
     public function getExamById($id)
     {
         $exam = Exam::query()

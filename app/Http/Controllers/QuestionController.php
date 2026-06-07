@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Question\QuestionRequest;
 use App\Http\Resources\Question\QuestionResource;
+use App\Models\Teacher;
 use App\Services\ActivityLogService;
 use App\Services\QuestionService;
 use App\Traits\ApiResponse;
@@ -17,34 +18,42 @@ class QuestionController extends Controller
      */
     public function __construct(
         private QuestionService $questionService,
-        private ActivityLogService $activityLogService
+        private ActivityLogService $activityLogService,
     ) {}
     public function index(Request $request)
     {
-        $paginator = $this->questionService->getAllQuestions(5, $request->query('search', ''));
+        $teacher = $request->user()->teacher;
+
+        $paginator = $this->questionService->getAllQuestions(
+            5,
+            $request->query("search", ""),
+            $teacher->id,
+        );
         return $this->successResponse(
             QuestionResource::collection($paginator),
-            'Question retrieved successfully',
+            "Question retrieved successfully",
             200,
             [
-                'pagination' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                ]
-            ]
+                "pagination" => [
+                    "current_page" => $paginator->currentPage(),
+                    "last_page" => $paginator->lastPage(),
+                    "per_page" => $paginator->perPage(),
+                    "total" => $paginator->total(),
+                ],
+            ],
         );
     }
     public function store(QuestionRequest $request)
     {
-        $question = $this->questionService->createQuestion($request->validated());
+        $question = $this->questionService->createQuestion(
+            $request->validated(),
+        );
 
-        $this->activityLogService->log($request->user(), "create", 'Question');
+        $this->activityLogService->log($request->user(), "create", "Question");
 
         return $this->successResponse(
             new QuestionResource($question),
-            'Question created successfully',
+            "Question created successfully",
             201,
         );
     }
@@ -53,19 +62,22 @@ class QuestionController extends Controller
         $question = $this->questionService->getQuestionById($id);
         return $this->successResponse(
             new QuestionResource($question),
-            'Question retrieved successfully',
+            "Question retrieved successfully",
             200,
         );
     }
     public function update(QuestionRequest $request, $id)
     {
-        $question = $this->questionService->updateQuestion($request->validated(), $id);
+        $question = $this->questionService->updateQuestion(
+            $request->validated(),
+            $id,
+        );
 
-        $this->activityLogService->log($request->user(), "update", 'Question');
+        $this->activityLogService->log($request->user(), "update", "Question");
 
         return $this->successResponse(
             new QuestionResource($question),
-            'Question updated successfully',
+            "Question updated successfully",
             200,
         );
     }
@@ -74,11 +86,11 @@ class QuestionController extends Controller
         $this->questionService->getQuestionById($id);
         $this->questionService->deleteQuestion($id);
 
-        $this->activityLogService->log($request->user(), "delete", 'Question');
+        $this->activityLogService->log($request->user(), "delete", "Question");
 
         return $this->successResponse(
             null,
-            'Question deleted successfully',
+            "Question deleted successfully",
             200,
         );
     }

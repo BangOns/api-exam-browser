@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\DataNotFound;
 use App\Exceptions\InvalidLoginException;
+use App\Models\Lesson;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
@@ -89,11 +90,18 @@ class AuthService
             throw new DataNotFound("Data siswa tidak ditemukan");
         }
 
-        if (
-            $user->role === "teacher" &&
-            !Teacher::where("user_id", $user->id)->exists()
-        ) {
-            throw new DataNotFound("Data guru tidak ditemukan");
+        if ($user->role === "teacher") {
+            $teacher = Teacher::where("user_id", $user->id)->first();
+
+            if (!$teacher) {
+                throw new DataNotFound("Data guru tidak ditemukan");
+            }
+
+            $hasLesson = Lesson::where("teacher_id", $teacher->id)->exists();
+
+            if (!$hasLesson) {
+                throw new DataNotFound("Guru belum memiliki mata pelajaran");
+            }
         }
         // 3. Verifikasi kredensial dengan timing-safe check
         //    Selalu jalankan Hash::check() meski user tidak ada

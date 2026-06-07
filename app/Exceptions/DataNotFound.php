@@ -11,7 +11,7 @@ class DataNotFound extends Exception
     public function render($request)
     {
         return $this->errorResponse(
-            'Data tidak ditemukan.',
+            $this->getMessage() ?: "Data tidak ditemukan.",
             404,
         );
     }
