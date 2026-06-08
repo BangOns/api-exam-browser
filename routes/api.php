@@ -34,6 +34,7 @@ Route::middleware(["auth:sanctum"])->group(function () {
             Route::apiResource("teacher", TeacherController::class);
             Route::apiResource("student", StudentController::class);
             Route::apiResource("subjects", SubjectController::class);
+            Route::apiResource("exam", ExamController::class);
             Route::post("exam-tokens/{exam}/generate", [
                 ExamTokenController::class,
                 "generate",
@@ -51,9 +52,14 @@ Route::middleware(["auth:sanctum"])->group(function () {
                 ExamAttemptController::class,
                 "edit",
             ]);
-            Route::apiResource("exam", ExamController::class, [
+            Route::get("exam-teacher", [
+                ExamController::class,
                 "indexByTeacherId",
             ]);
+            Route::post("exam", [ExamController::class, "store"]);
+            Route::get("exam/{exam}", [ExamController::class, "show"]);
+            Route::put("exam/{exam}", [ExamController::class, "update"]);
+            Route::delete("exam/{exam}", [ExamController::class, "destroy"]);
         });
         Route::middleware(["ability:role:student"])->group(function () {
             Route::post("exam-attempts/{exam}/enter", [
@@ -68,12 +74,19 @@ Route::middleware(["auth:sanctum"])->group(function () {
                 ExamAttemptController::class,
                 "submit",
             ]);
+            Route::get("exam-student", [
+                ExamController::class,
+                "indexByStudentId",
+            ]);
+            Route::post("exam", [ExamController::class, "store"]);
+            Route::get("exam/{exam}", [ExamController::class, "show"]);
+            Route::put("exam/{exam}", [ExamController::class, "update"]);
+            Route::delete("exam/{exam}", [ExamController::class, "destroy"]);
         });
         Route::middleware([
             "ability:role:teacher,role:admin,role:student",
         ])->group(function () {
             Route::apiResource("exam-schedules", ExamScheduleController::class);
-            Route::apiResource("exam", ExamController::class);
             Route::get("exams/{exam}/monitor", [
                 ExamController::class,
                 "monitor",
@@ -83,6 +96,7 @@ Route::middleware(["auth:sanctum"])->group(function () {
                 "index",
             ]);
         });
+
         Route::get("/user", function (Request $request) {
             return $request->user();
         });

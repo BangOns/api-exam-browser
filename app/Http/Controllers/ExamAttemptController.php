@@ -33,6 +33,21 @@ class ExamAttemptController extends Controller
             200,
         );
     }
+    public function indexByIdTeacher(Request $request, string $examId)
+    {
+        $teacher = $request->user()->teacher;
+        $attempts = $this->examAttemptService->getAllExamAttemptsByIdTeacher(
+            $request->perPage ?? 5,
+            $request->search ?? "",
+            $examId,
+            $teacher->id,
+        );
+        return $this->successResponse(
+            ExamAttemptResource::collection($attempts),
+            "Berhasil mengambil daftar ujian",
+            200,
+        );
+    }
 
     public function enter(EnterExamRequest $request, string $examId)
     {

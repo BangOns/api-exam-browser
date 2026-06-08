@@ -63,6 +63,29 @@ class ExamController extends Controller
             ],
         );
     }
+    public function indexByStudentId(Request $request)
+    {
+        $student = $request->user()->student;
+        $paginator = $this->examService->getAllExamsByStudentId(
+            $request->query("per_page", 5),
+            $request->query("search", ""),
+            $request->query("status", ""),
+            $student,
+        );
+        return $this->successResponse(
+            ExamResource::collection($paginator),
+            "Data berhasil diambil",
+            200,
+            [
+                "pagination" => [
+                    "current_page" => $paginator->currentPage(),
+                    "last_page" => $paginator->lastPage(),
+                    "per_page" => $paginator->perPage(),
+                    "total" => $paginator->total(),
+                ],
+            ],
+        );
+    }
 
     /**
      * Store a newly created resource in storage.
