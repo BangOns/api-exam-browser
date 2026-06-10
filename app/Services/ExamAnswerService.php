@@ -120,7 +120,7 @@ class ExamAnswerService
 
             if ($question->type === "Multiple Choice") {
                 $isCorrect = $answerText === $question->correct_answer;
-                $score = $isCorrect ? $question->max_points : 0;
+                $score = $isCorrect ? 100 : 0;
             }
 
             // ✅ Essay: simpan jawaban saja, score null menunggu guru
