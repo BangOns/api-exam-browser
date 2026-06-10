@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -11,19 +10,26 @@ use Illuminate\Support\Str;
 class Exam extends Model
 {
     protected $fillable = [
-        'name',
-        'lesson_id',
-        'status',
-        'token',
+        "name",
+        "lesson_id",
+        "status",
+        "token",
+        "essay_weight",
+        "pg_weight",
     ];
-    protected $table = 'exams';
-    protected $keyType = 'string';
+
+    protected $table = "exams";
+    protected $keyType = "string";
     public $incrementing = false;
+
+    protected $casts = [
+        "essay_weight" => "integer",
+        "pg_weight" => "integer",
+    ];
 
     protected static function boot()
     {
         parent::boot();
-
         static::creating(function ($model) {
             if (!$model->id) {
                 $model->id = Str::uuid();
@@ -31,14 +37,19 @@ class Exam extends Model
         });
     }
 
-
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
     }
+
     public function questions(): BelongsToMany
     {
-        return $this->belongsToMany(Question::class, 'exam_questions', 'exam_id', 'question_id');
+        return $this->belongsToMany(
+            Question::class,
+            "exam_questions",
+            "exam_id",
+            "question_id",
+        )->withTimestamps();
     }
 
     public function schedules(): HasMany

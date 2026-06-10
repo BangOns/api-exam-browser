@@ -22,46 +22,6 @@ class ExamAttemptService
     const EXITED = "Exited";
     const SUBMITTED = "Submitted";
 
-    /**
-     * Ambil semua attempt dengan pagination dan pencarian.
-     *
-     * FIX: orWhereHas tanpa grouping menyebabkan query bocor ke semua record.
-     * Sekarang di-wrap dengan where() closure agar OR hanya berlaku di dalam kondisi search.
-     */
-    // public function getAllExamAttempts(
-    //     int $perPage = 5,
-    //     string $search = "",
-    //     string $examId = "",
-    // ): LengthAwarePaginator {
-    //     $perPage = min($perPage, self::MAX_PER_PAGE);
-
-    //     return StudentExamAttempt::with(["exam", "student", "answers"])
-    //         ->when($search, function ($q) use ($search) {
-    //             $q->where(function ($inner) use ($search) {
-    //                 $inner
-    //                     ->whereHas(
-    //                         "student",
-    //                         fn($sq) => $sq->where(
-    //                             "name",
-    //                             "like",
-    //                             "%{$search}%",
-    //                         ),
-    //                     )
-    //                     ->orWhereHas(
-    //                         "exam",
-    //                         fn($eq) => $eq->where(
-    //                             "title",
-    //                             "like",
-    //                             "%{$search}%",
-    //                         ),
-    //                     );
-    //             });
-    //         })
-    //         ->when($examId, function ($q) use ($examId) {
-    //             $q->whereHas("exam", fn($eq) => $eq->where("id", $examId));
-    //         })
-    //         ->paginate($perPage);
-    // }
     public function getAllExamAttempts(
         int $perPage = 5,
         string $search = "",
@@ -93,9 +53,7 @@ class ExamAttemptService
             ->latest()
             ->paginate($perPage);
     }
-    /**
-     * Generate token baru untuk exam, token sebelumnya otomatis non-aktif.
-     */
+
     public function generateNewToken(string $examId): ExamToken
     {
         $exam = Exam::find($examId);
@@ -135,9 +93,6 @@ class ExamAttemptService
         });
     }
 
-    /**
-     * Student memasuki ujian menggunakan token.
-     */
     public function enterExam(
         string $studentId,
         string $examId,
@@ -172,7 +127,6 @@ class ExamAttemptService
                 ->lockForUpdate()
                 ->first();
 
-            // ✅ BELUM PERNAH MASUK → Buat attempt baru
             if (!$attempt) {
                 return StudentExamAttempt::create([
                     "exam_id" => $examId,
@@ -184,7 +138,6 @@ class ExamAttemptService
                 ]);
             }
 
-            // ❌ SUDAH SUBMIT → Tolak permanen
             if ($attempt->status === self::SUBMITTED) {
                 throw new \Exception(
                     "Anda sudah menyelesaikan ujian ini.",
@@ -192,7 +145,6 @@ class ExamAttemptService
                 );
             }
 
-            // ❌ EXITED + TOKEN SAMA → Tolak, wajib pakai token baru
             if (
                 $attempt->status === self::EXITED &&
                 $attempt->last_token_used === $token
@@ -203,7 +155,6 @@ class ExamAttemptService
                 );
             }
 
-            // ✅ EXITED + TOKEN BARU → Izinkan masuk kembali
             if ($attempt->status === self::EXITED) {
                 $attempt->update([
                     "status" => self::IN_PROGRESS,
@@ -213,22 +164,14 @@ class ExamAttemptService
                 return $attempt->fresh();
             }
 
-            // ✅ IN PROGRESS → Reconnect (tab baru / refresh), biarkan lanjut
             if ($attempt->status === self::IN_PROGRESS) {
                 return $attempt;
             }
 
-            // ❌ Status tidak dikenali
             throw new \Exception("Status ujian tidak valid.", 500);
         });
     }
 
-    /**
-     * Student keluar dari ujian (sengaja/tidak sengaja).
-     *
-     * FIX: increment dipindahkan ke sebelum update agar keduanya
-     * berada dalam satu urutan yang konsisten di dalam transaksi.
-     */
     public function exitExam(
         string $studentId,
         string $examId,
@@ -247,7 +190,6 @@ class ExamAttemptService
             app(ExamViolationsService::class)->handleViolation($attempt, $type);
 
             if ($attempt->status === self::IN_PROGRESS) {
-                // ✅ FIX: increment dulu, lalu update status — urutan konsisten
                 $attempt->increment("exit_count");
                 $attempt->update(["status" => self::EXITED]);
             }
@@ -256,9 +198,6 @@ class ExamAttemptService
         });
     }
 
-    /**
-     * Student mensubmit ujian.
-     */
     public function submitExam(
         string $studentId,
         string $examId,
@@ -273,37 +212,109 @@ class ExamAttemptService
                 ->where("student_id", $studentId)
                 ->lockForUpdate()
                 ->first();
+
             if (!$attempt) {
                 throw new DataNotFound("Anda belum masuk ke ujian ini");
             }
 
-            // if ($attempt->status === self::SUBMITTED) {
-            //     return $attempt;
-            // }
             $examAnswerService = app(ExamAnswerService::class);
             $examAnswerService->saveAnswersBulk(
                 $attempt->id,
                 $submittedAnswers,
             );
+
+            // Ambil exam beserta questions untuk basis perhitungan
+            $exam = $attempt->exam->load("questions");
+
+            // Hitung pending essay (essay yang belum dinilai guru)
+            $pendingEssayCount = $exam->questions
+                ->filter(fn($q) => $q->type === "Essay")
+                ->count();
+
+            // Hitung score sementara (hanya dari PG, essay masih 0)
             $answers = $attempt->answers()->with("question")->get();
-            $totalScore = $answers->sum("score");
-            // // Hitung jumlah soal essay yang belum dinilai (score masih 0)
-            // $pendingEssayCount = $answers
-            //     ->filter(
-            //         fn($a) => $a->question->type === "Essay" && $a->score == 0,
-            //     )
-            //     ->count();
+            $totalScore = $this->calculateWeightedScore($answers, $exam);
 
             $attempt->update([
                 "status" => self::SUBMITTED,
                 "submitted_at" => now(),
                 "total_score" => $totalScore,
-                // // ✅ FIX: Tandai apakah score sudah final atau masih menunggu penilaian essay
-                // "is_score_final" => $pendingEssayCount === 0,
-                // "pending_essay_count" => $pendingEssayCount,
+                "is_score_final" => $pendingEssayCount === 0,
+                "pending_essay_count" => $pendingEssayCount,
             ]);
 
             return $attempt->fresh();
         });
+    }
+
+    /**
+     * Dipanggil setelah guru selesai menilai semua essay.
+     * Menghitung ulang total_score berdasarkan bobot essay & PG.
+     */
+    public function recalculateTotalScore(string $attemptId): void
+    {
+        $attempt = StudentExamAttempt::with([
+            "answers.question",
+            "exam.questions",
+        ])->findOrFail($attemptId);
+
+        $totalScore = $this->calculateWeightedScore(
+            $attempt->answers,
+            $attempt->exam,
+        );
+
+        $attempt->update([
+            "total_score" => $totalScore,
+            "is_score_final" => true,
+        ]);
+    }
+
+    /**
+     * Hitung weighted score berdasarkan bobot essay & PG dari exam.
+     * Basis perhitungan dari exam_questions (bukan jawaban siswa)
+     * agar soal yang tidak dijawab tetap dihitung sebagai 0.
+     */
+    private function calculateWeightedScore(
+        \Illuminate\Support\Collection $answers,
+        \App\Models\Exam $exam,
+    ): float {
+        $examQuestions = $exam->questions;
+
+        $essayQuestions = $examQuestions->filter(
+            fn($q) => $q->type === "Essay",
+        );
+        $pgQuestions = $examQuestions->filter(fn($q) => $q->type !== "Essay");
+
+        $essayWeight = $exam->essay_weight ?? 0;
+        $pgWeight = $exam->pg_weight ?? 0;
+
+        // Index jawaban siswa by question_id untuk lookup O(1)
+        $answersByQuestionId = $answers->keyBy("question_id");
+
+        $essayScore = 0;
+        if ($essayQuestions->count() > 0) {
+            $totalEssay = $essayQuestions->sum(function ($q) use (
+                $answersByQuestionId,
+            ) {
+                $answer = $answersByQuestionId->get($q->id);
+                return $answer?->score ?? 0;
+            });
+            $avgEssay = $totalEssay / $essayQuestions->count();
+            $essayScore = ($avgEssay * $essayWeight) / 100;
+        }
+
+        $pgScore = 0;
+        if ($pgQuestions->count() > 0) {
+            $totalPg = $pgQuestions->sum(function ($q) use (
+                $answersByQuestionId,
+            ) {
+                $answer = $answersByQuestionId->get($q->id);
+                return $answer?->score ?? 0;
+            });
+            $avgPg = $totalPg / $pgQuestions->count();
+            $pgScore = ($avgPg * $pgWeight) / 100;
+        }
+
+        return round($essayScore + $pgScore, 2);
     }
 }

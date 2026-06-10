@@ -73,8 +73,10 @@ class ExamAnswerService
         return $studentAnswer;
     }
 
-    public function saveAnswersBulk(string $attemptId, array $submittedAnswers)
-    {
+    public function saveAnswersBulk(
+        string $attemptId,
+        array $submittedAnswers,
+    ): array {
         if (empty($submittedAnswers)) {
             return [];
         }
@@ -92,11 +94,10 @@ class ExamAnswerService
             return [];
         }
 
-        // 1. Tarik semua data Questions sekaligus (N+1 Select dihindari)
         $questions = Question::whereIn("id", array_unique($questionIds))
             ->get()
             ->keyBy("id");
-        // 2. Tarik semua jawaban yang sudah ada untuk attempt ini (N+1 UpdateOrCreate dihindari)
+
         $existingAnswers = StudentExamAnswer::where(
             "student_exam_attempt_id",
             $attemptId,
@@ -104,6 +105,7 @@ class ExamAnswerService
             ->whereIn("question_id", array_unique($questionIds))
             ->get()
             ->keyBy("question_id");
+
         $now = now()->toDateTimeString();
         $upserts = [];
 
@@ -112,30 +114,29 @@ class ExamAnswerService
             if (!$question) {
                 continue;
             }
-            $score = 0;
-            $isCorrect = false;
+
+            $score = null;
+            $isCorrect = null;
+
             if ($question->type === "Multiple Choice") {
                 $isCorrect = $answerText === $question->correct_answer;
                 $score = $isCorrect ? $question->max_points : 0;
             }
+
+            // ✅ Essay: simpan jawaban saja, score null menunggu guru
             if ($question->type === "Essay") {
-                $existing = $existingAnswers->get($questionId);
-                // Jika sudah pernah dinilai manual, gunakan score lama
-                if ($existing && $existing->score !== null) {
-                    $score = intval($answerText);
-                } else {
-                    $isCorrect = $answerText === $question->rubric;
-                    $score = $isCorrect ? $question->max_points : 0;
-                }
+                $score = null;
+                $isCorrect = null;
             }
-            // Cek apakah data jawaban sudah ada. Jika ada pakai ID lama, jika belom buat ID baru UUID.
+
             $existing = $existingAnswers->get($questionId);
             $id = $existing ? $existing->id : (string) Str::uuid();
+
             $upserts[] = [
                 "id" => $id,
                 "student_exam_attempt_id" => $attemptId,
                 "question_id" => $questionId,
-                "answer" => $existing ? $existing->answer : $answerText,
+                "answer" => $answerText,
                 "score" => $score,
                 "is_correct" => $isCorrect,
                 "answered_at" => $now,
@@ -145,6 +146,7 @@ class ExamAnswerService
                 "updated_at" => $now,
             ];
         }
+
         if (!empty($upserts)) {
             StudentExamAnswer::upsert(
                 $upserts,
@@ -154,5 +156,78 @@ class ExamAnswerService
         }
 
         return $upserts;
+    }
+
+    /**
+     * Dipanggil saat guru menilai essay
+     * Validasi hanya pembuat exam yang bisa menilai
+     */
+    public function gradeEssay(
+        string $attemptId,
+        string $questionId,
+        int $score,
+        string $gradedBy, // auth()->id() dari controller
+    ): StudentExamAnswer {
+        $answer = StudentExamAnswer::where(
+            "student_exam_attempt_id",
+            $attemptId,
+        )
+            ->where("question_id", $questionId)
+            ->firstOrFail();
+
+        $scoreBefore = $answer->score ?? 0;
+
+        DB::transaction(function () use (
+            $answer,
+            $score,
+            $gradedBy,
+            $attemptId,
+            $questionId,
+            $scoreBefore,
+        ) {
+            // Update jawaban
+            $answer->update([
+                "score" => $score,
+                "graded_by" => $gradedBy,
+                "graded_at" => now(),
+            ]);
+
+            // Simpan log perubahan nilai
+            if ($scoreBefore !== $score) {
+                ExamAnswerScoreLog::create([
+                    "id" => (string) Str::uuid(),
+                    "student_exam_answer_id" => $answer->id,
+                    "attempt_id" => $attemptId,
+                    "question_id" => $questionId,
+                    "graded_by" => $gradedBy,
+                    "score_before" => $scoreBefore,
+                    "score_after" => $score,
+                    "source" => "manual",
+                ]);
+            }
+
+            // Cek apakah semua essay sudah dinilai
+            $pendingCount = StudentExamAnswer::where(
+                "student_exam_attempt_id",
+                $attemptId,
+            )
+                ->whereHas("question", fn($q) => $q->where("type", "Essay"))
+                ->whereNull("graded_by")
+                ->count();
+
+            $attempt = StudentExamAttempt::find($attemptId);
+            $attempt->update([
+                "pending_essay_count" => $pendingCount,
+            ]);
+
+            // Jika semua essay sudah dinilai → recalculate final score
+            if ($pendingCount === 0) {
+                app(ExamAttemptService::class)->recalculateTotalScore(
+                    $attemptId,
+                );
+            }
+        });
+
+        return $answer->fresh();
     }
 }
