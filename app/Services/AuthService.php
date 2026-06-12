@@ -72,9 +72,13 @@ class AuthService
     public function login(
         array $data,
         string $ipAddress,
-        string $userAgent,
+        ?string $userAgent = null, // 1. Tambahkan `?` dan `= null` di sini
     ): array {
+        // 2. Berikan nilai default jika userAgent bernilai null
+        $userAgent = $userAgent ?? "Unknown Device";
+
         $throttleKey = $this->throttleKey($data["username"], $ipAddress);
+
         // 1. Cek apakah sudah terkena lockout
         $this->checkLockout($throttleKey, $data["username"], $ipAddress);
 
@@ -83,6 +87,7 @@ class AuthService
         if (empty($user)) {
             throw new InvalidLoginException();
         }
+
         if (
             $user->role === "student" &&
             !Student::where("user_id", $user->id)->exists()
@@ -103,19 +108,19 @@ class AuthService
                 throw new DataNotFound("Guru belum memiliki mata pelajaran");
             }
         }
+
         // 3. Verifikasi kredensial dengan timing-safe check
-        //    Selalu jalankan Hash::check() meski user tidak ada
-        //    untuk mencegah timing attack / username enumeration
         $passwordValid = $this->verifyPassword(
             $data["password"],
             $user->password,
         );
+
         if (!$passwordValid) {
             $this->handleFailedAttempt(
                 $throttleKey,
                 $data["username"],
                 $ipAddress,
-                $userAgent,
+                $userAgent, // Sekarang ini aman meskipun aslinya null
             );
             throw new InvalidLoginException();
         }
@@ -140,7 +145,7 @@ class AuthService
         )->plainTextToken;
 
         // 7. Log aktivitas login berhasil
-        $this->logLoginSuccess($user, $ipAddress, $userAgent);
+        $this->logLoginSuccess($user, $ipAddress, $userAgent); // Ini juga aman sekarang
 
         return [
             "user" => $user,
@@ -149,7 +154,6 @@ class AuthService
             "expires_in" => self::ACCESS_TOKEN_TTL * 60, // dalam detik
         ];
     }
-
     /**
      * Proses refresh access token menggunakan refresh token yang masih valid.
      */
