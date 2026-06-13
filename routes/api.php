@@ -27,14 +27,20 @@ Route::middleware(["auth:sanctum"])->group(function () {
 
     Route::middleware(["ability:access_api"])->group(function () {
         Route::post("/logout", [AuthController::class, "logout"]);
+
+        // ==========================================
+        // 1. ROLE: ADMIN
+        // ==========================================
         Route::middleware(["ability:role:admin"])->group(function () {
-            // class
             Route::apiResource("report", ActivityLogController::class);
             Route::apiResource("class", ClassController::class);
             Route::apiResource("teacher", TeacherController::class);
             Route::apiResource("student", StudentController::class);
             Route::apiResource("subjects", SubjectController::class);
-            Route::apiResource("exam", ExamController::class);
+
+            // Admin melihat semua ujian
+            Route::get("exam", [ExamController::class, "index"]);
+
             Route::post("exam-tokens/{exam}/generate", [
                 ExamTokenController::class,
                 "generate",
@@ -44,23 +50,29 @@ Route::middleware(["auth:sanctum"])->group(function () {
                 "update",
             ]);
         });
+
+        // ==========================================
+        // 2. ROLE: TEACHER
+        // ==========================================
         Route::middleware(["ability:role:teacher"])->group(function () {
             Route::apiResource("question", QuestionController::class);
             Route::apiResource("lesson", LessonController::class);
             Route::apiResource("exam-answers", ExamAnswerController::class);
+
             Route::put("exam-attempts/{exam}/edit", [
                 ExamAttemptController::class,
                 "edit",
             ]);
+            // Guru melihat ujian miliknya sendiri
             Route::get("exam-teacher", [
                 ExamController::class,
                 "indexByTeacherId",
             ]);
-            Route::post("exam", [ExamController::class, "store"]);
-            Route::get("exam/{exam}", [ExamController::class, "show"]);
-            Route::put("exam/{exam}", [ExamController::class, "update"]);
-            Route::delete("exam/{exam}", [ExamController::class, "destroy"]);
         });
+
+        // ==========================================
+        // 3. ROLE: STUDENT
+        // ==========================================
         Route::middleware(["ability:role:student"])->group(function () {
             Route::post("exam-attempts/{exam}/enter", [
                 ExamAttemptController::class,
@@ -74,18 +86,39 @@ Route::middleware(["auth:sanctum"])->group(function () {
                 ExamAttemptController::class,
                 "submit",
             ]);
+
+            // Siswa melihat ujian untuknya
             Route::get("exam-student", [
                 ExamController::class,
                 "indexByStudentId",
             ]);
-            Route::post("exam", [ExamController::class, "store"]);
-            Route::get("exam/{exam}", [ExamController::class, "show"]);
-            Route::put("exam/{exam}", [ExamController::class, "update"]);
-            Route::delete("exam/{exam}", [ExamController::class, "destroy"]);
         });
+
+        // ==========================================
+        // 4. SHARED: ADMIN & TEACHER
+        // Mencegah saling timpa endpoint create, update, delete ujian
+        // ==========================================
+        Route::middleware(["ability:role:admin,role:teacher"])->group(
+            function () {
+                Route::post("exam", [ExamController::class, "store"]);
+                Route::put("exam/{exam}", [ExamController::class, "update"]);
+                Route::delete("exam/{exam}", [
+                    ExamController::class,
+                    "destroy",
+                ]);
+            },
+        );
+
+        // ==========================================
+        // 5. SHARED: ADMIN, TEACHER, & STUDENT
+        // Rute yang bisa diakses oleh semua role
+        // ==========================================
         Route::middleware([
             "ability:role:teacher,role:admin,role:student",
         ])->group(function () {
+            // Semua role bisa melihat detail ujian spesifik
+            Route::get("exam/{exam}", [ExamController::class, "show"]);
+
             Route::apiResource("exam-schedules", ExamScheduleController::class);
             Route::get("exams/{exam}/monitor", [
                 ExamController::class,
@@ -97,6 +130,9 @@ Route::middleware(["auth:sanctum"])->group(function () {
             ]);
         });
 
+        // ==========================================
+        // Cek Data User Aktif
+        // ==========================================
         Route::get("/user", function (Request $request) {
             return $request->user();
         });

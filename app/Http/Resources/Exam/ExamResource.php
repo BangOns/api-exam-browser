@@ -30,6 +30,8 @@ class ExamResource extends JsonResource
                     "name" => $this->lesson?->subject?->name ?? null,
                 ],
             ],
+            "pg_weight" => $this->pg_weight,
+            "essay_weight" => $this->essay_weight,
             "status" => $this->status,
             "schedule" => $this->whenLoaded("schedules", function () {
                 return $this->schedules->last()

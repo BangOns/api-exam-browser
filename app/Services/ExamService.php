@@ -59,6 +59,8 @@ class ExamService
             "status",
             "created_at",
             "updated_at",
+            "pg_weight",
+            "essay_weight",
         )
             ->with("lesson", "schedules", "tokens")
             ->when($status, function ($q) use ($status) {

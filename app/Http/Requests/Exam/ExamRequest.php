@@ -12,7 +12,7 @@ class ExamRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return auth("sanctum")->check();
+        return true;
     }
 
     /**
@@ -28,8 +28,8 @@ class ExamRequest extends FormRequest
             "status" => "required|in:draft,active,scheduled,completed",
             "questions" => "nullable|array|max:500",
             "questions.*" => "uuid|exists:questions,id",
-            "pg_weight" => "required|number",
-            "essay_weight" => "required|number",
+            "pg_weight" => "required|numeric",
+            "essay_weight" => "required|numeric",
         ];
     }
     public function attributes()
@@ -53,7 +53,7 @@ class ExamRequest extends FormRequest
             "exists" => ":attribute is not found",
             "in" => ":attribute is invalid",
             "array" => ":attribute must be an array",
-            "number" => ":attribute like with number",
+            "numeric" => ":attribute like with number",
         ];
     }
 }
