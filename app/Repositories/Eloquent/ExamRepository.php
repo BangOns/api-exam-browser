@@ -14,28 +14,25 @@ class ExamRepository extends BaseRepository
 
     protected function getWithRelations()
     {
-        return [
-            'subject:id,name',
-            'class:id,name',
-        ];
+        return ["subject:id,name", "class:id,name"];
     }
 
     protected function getSelectableColumns(): array
     {
         return [
-            'id', 
-            'name', 
-            'subject_id', 
-            'class_id', 
-            'status', 
-            'created_at', 
-            'updated_at'
+            "id",
+            "name",
+            "subject_id",
+            "class_id",
+            "status",
+            "created_at",
+            "updated_at",
         ];
     }
 
     protected function getSearchColumns(): array
     {
-        return ['name', 'status'];
+        return ["name", "status"];
     }
 
     /**
@@ -46,9 +43,9 @@ class ExamRepository extends BaseRepository
         return $this->model
             ->select($this->getSelectableColumns())
             ->with([
-                'subject:id,name',
-                'class:id,name',
-                'questions:id,question,type,lesson_id,options,correct_answer,rubric,max_points'
+                "subject:id,name",
+                "class:id,name",
+                "questions:id,question,type,lesson_id,options,correct_answer,rubric",
             ])
             ->findOrFail($id);
     }

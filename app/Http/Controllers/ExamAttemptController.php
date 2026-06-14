@@ -159,7 +159,7 @@ class ExamAttemptController extends Controller
     /**
      * Guru menilai jawaban essay siswa.
      */
-    public function edit(GradeEssayRequest $request, string $examId)
+    public function edit(GradeEssayRequest $request, string $attemptId)
     {
         // ✅ ganti Request → GradeEssayRequest
         try {
@@ -170,7 +170,7 @@ class ExamAttemptController extends Controller
             }
 
             $attempt = $this->examAttemptService->gradeEssayAnswers(
-                attemptId: $request->validated("attempt_id"),
+                attemptId: $attemptId,
                 answers: $request->validated("answers"),
             );
 

@@ -8,8 +8,8 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Carbon\Carbon;
 
-#[Signature('exams:update-status')]
-#[Description('Update exam status to active if schedule time is reached')]
+#[Signature("exams:update-status")]
+#[Description("Update exam status to active if schedule time is reached")]
 class UpdateActiveExamsCommand extends Command
 {
     /**
@@ -19,30 +19,37 @@ class UpdateActiveExamsCommand extends Command
     {
         $now = Carbon::now();
 
-        $schedules = ExamSchedule::with('exam')
-            ->whereIn('status', ['draft', 'scheduled', 'active'])
+        $schedules = ExamSchedule::with("exam")
+            ->whereIn("status", ["draft", "scheduled", "active", "completed"]) // ✅ tambah completed
+            ->whereHas("exam", function ($q) {
+                $q->whereNotIn("status", ["completed"]); // ✅ hanya proses jika exam belum completed
+            })
             ->get();
 
         foreach ($schedules as $schedule) {
-            $examDate = Carbon::parse($schedule->exam_date)->format('Y-m-d');
+            $examDate = Carbon::parse($schedule->exam_date)->format("Y-m-d");
 
-            $startDateTime = Carbon::parse("{$examDate} {$schedule->start_time}");
+            $startDateTime = Carbon::parse(
+                "{$examDate} {$schedule->start_time}",
+            );
             $endDateTime = Carbon::parse("{$examDate} {$schedule->end_time}");
 
             if ($now->lt($startDateTime)) {
-                if ($schedule->status !== 'scheduled') {
-                    $schedule->update(['status' => 'scheduled']);
-                    $schedule->exam->update(['status' => 'scheduled']);
-                    $this->info("Schedule {$schedule->id} updated to scheduled");
+                if ($schedule->status !== "scheduled") {
+                    $schedule->update(["status" => "scheduled"]);
+                    $schedule->exam->update(["status" => "scheduled"]);
+                    $this->info(
+                        "Schedule {$schedule->id} updated to scheduled",
+                    );
                 }
 
                 continue;
             }
 
             if ($now->gte($startDateTime) && $now->lt($endDateTime)) {
-                if ($schedule->status !== 'active') {
-                    $schedule->update(['status' => 'active']);
-                    $schedule->exam->update(['status' => 'active']);
+                if ($schedule->status !== "active") {
+                    $schedule->update(["status" => "active"]);
+                    $schedule->exam->update(["status" => "active"]);
 
                     $this->info("Schedule {$schedule->id} updated to active");
                 }
@@ -51,10 +58,23 @@ class UpdateActiveExamsCommand extends Command
             }
 
             if ($now->gte($endDateTime)) {
-                if ($schedule->status !== 'completed') {
-                    $schedule->update(['status' => 'completed']);
-                    $schedule->exam->update(['status' => 'completed']);
-                    $this->info("Schedule {$schedule->id} updated to completed");
+                // ✅ Update schedule jika belum completed
+                if ($schedule->status !== "completed") {
+                    $schedule->update(["status" => "completed"]);
+                    $this->info(
+                        "Schedule {$schedule->id} updated to completed",
+                    );
+                }
+
+                // ✅ Update exam terpisah — tidak tergantung status schedule
+                if (
+                    $schedule->exam &&
+                    $schedule->exam->status !== "completed"
+                ) {
+                    $schedule->exam->update(["status" => "completed"]);
+                    $this->info(
+                        "Exam {$schedule->exam->id} updated to completed",
+                    );
                 }
             }
         }

@@ -37,7 +37,45 @@ class ExamAnswerService
      */
     public function getExamAnswersByAttemptId(string $id): Collection
     {
-        return StudentExamAnswer::where("student_exam_attempt_id", $id)->get();
+        $attempt = StudentExamAttempt::with([
+            "exam.questions",
+            "student.user",
+            "student.class",
+        ])->findOrFail($id);
+
+        $essayQuestions = $attempt->exam->questions->where("type", "Essay");
+
+        $existingAnswers = StudentExamAnswer::with(["question"])
+            ->where("student_exam_attempt_id", $id)
+            ->whereIn("question_id", $essayQuestions->pluck("id"))
+            ->get()
+            ->keyBy("question_id");
+
+        return $essayQuestions
+            ->map(function ($question) use ($existingAnswers, $id, $attempt) {
+                $answer = $existingAnswers->get($question->id);
+
+                if ($answer) {
+                    // Set relasi agar tidak lazy load
+                    $answer->setRelation("studentExamAttempt", $attempt);
+                    $answer->setRelation("question", $question);
+                    return $answer;
+                }
+
+                // Instance kosong untuk soal yang belum dijawab
+                $empty = new StudentExamAnswer();
+                $empty->student_exam_attempt_id = $id;
+                $empty->question_id = $question->id;
+                $empty->answer = null;
+                $empty->score = null;
+                $empty->graded_by = null;
+                $empty->graded_at = null;
+                $empty->setRelation("question", $question);
+                $empty->setRelation("studentExamAttempt", $attempt);
+
+                return $empty;
+            })
+            ->values();
     }
 
     /**
@@ -62,7 +100,6 @@ class ExamAnswerService
         // Hanya Multiple Choice yang bisa dinilai otomatis
         if ($question->type === "Multiple Choice") {
             $isCorrect = $answer === $question->correct_answer;
-            // ✅ Score 100 jika benar, 0 jika salah (bukan max_points lagi)
             $score = $isCorrect ? 100 : 0;
         }
 
@@ -197,13 +234,18 @@ class ExamAnswerService
         int $score,
         string $gradedBy,
     ): StudentExamAnswer {
-        $answer = StudentExamAnswer::where(
-            "student_exam_attempt_id",
-            $attemptId,
-        )
-            ->where("question_id", $questionId)
-            ->first();
-
+        $answer = StudentExamAnswer::firstOrCreate(
+            [
+                "student_exam_attempt_id" => $attemptId,
+                "question_id" => $questionId,
+            ],
+            [
+                "answer" => null,
+                "score" => null,
+                "is_correct" => null,
+                "answered_at" => null,
+            ],
+        );
         if (!$answer) {
             throw new DataNotFound("Jawaban siswa tidak ditemukan");
         }
@@ -255,7 +297,6 @@ class ExamAnswerService
                 ->whereHas("question", fn($q) => $q->where("type", "Essay"))
                 ->whereNull("graded_by")
                 ->count();
-
             StudentExamAttempt::where("id", $attemptId)->update([
                 "pending_essay_count" => $pendingCount,
             ]);

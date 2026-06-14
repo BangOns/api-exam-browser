@@ -13,7 +13,7 @@ class GradeEssayRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "attempt_id" => "required|uuid|exists:student_exam_attempts,id",
+            // "attempt_id" => "required|uuid|exists:student_exam_attempts,id",
             "answers" => "required|array",
             "answers.*.question_id" => "required|uuid|exists:questions,id",
             "answers.*.score" => "required|integer|min:0|max:100",

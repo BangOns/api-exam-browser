@@ -89,6 +89,8 @@ class ExamService
             "status",
             "created_at",
             "updated_at",
+            "pg_weight",
+            "essay_weight",
         )
             ->with("lesson", "schedules", "tokens")
             ->when($status, function ($q) use ($status) {
@@ -119,7 +121,6 @@ class ExamService
                         "options",
                         "correct_answer",
                         "rubric",
-                        "max_points",
                     );
                 },
             ])
@@ -130,6 +131,8 @@ class ExamService
                 "lesson_id",
                 "created_at",
                 "updated_at",
+                "pg_weight",
+                "essay_weight",
             )
             ->find($id);
 

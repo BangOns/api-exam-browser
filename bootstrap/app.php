@@ -19,90 +19,124 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__ . '/../routes/web.php',
-        api: __DIR__ . '/../routes/api.php',
-        commands: __DIR__ . '/../routes/console.php',
-        health: '/up',
+        web: __DIR__ . "/../routes/web.php",
+        api: __DIR__ . "/../routes/api.php",
+        commands: __DIR__ . "/../routes/console.php",
+        health: "/up",
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth'      => Authenticate::class,
-            'abilities' => CheckAbilities::class,
-            'ability' => CheckForAnyAbility::class,
-            'throttle' => ThrottleRequests::class,
+            "auth" => Authenticate::class,
+            "abilities" => CheckAbilities::class,
+            "ability" => CheckForAnyAbility::class,
+            "throttle" => ThrottleRequests::class,
         ]);
 
         // Apply security headers & rate limiting to API routes
-        $middleware->group('api', [
+        $middleware->group("api", [
             SecurityHeaders::class,
             ApiRateLimit::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-
-        $exceptions->render(function (AuthenticationException $e, Request $request) {
-            return response()->json([
-                'status'  => 'error',
-                'code'    => 401,
-                'message' => 'Access token tidak valid atau sudah kadaluarsa.'
-            ], 401);
+        $exceptions->render(function (
+            AuthenticationException $e,
+            Request $request,
+        ) {
+            return response()->json(
+                [
+                    "status" => "error",
+                    "code" => 401,
+                    "message" =>
+                        "Access token tidak valid atau sudah kadaluarsa.",
+                ],
+                401,
+            );
         });
 
-        $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
-            return $request->is('api/*') || $request->expectsJson();
+        $exceptions->shouldRenderJsonWhen(function (
+            Request $request,
+            Throwable $e,
+        ) {
+            return $request->is("api/*") || $request->expectsJson();
         });
 
-        $exceptions->render(function (ModelNotFoundException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 404,
-                    'message' => 'Data tidak ditemukan.'
-                ], 404);
+        $exceptions->render(function (
+            ModelNotFoundException $e,
+            Request $request,
+        ) {
+            if ($request->is("api/*")) {
+                return response()->json(
+                    [
+                        "status" => "error",
+                        "code" => 404,
+                        "message" => "Data tidak ditemukan.",
+                    ],
+                    404,
+                );
             }
         });
-        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 404,
-                    'message' => $e->getMessage() ?? 'Endpoint not found.'
-                ], 404);
+        $exceptions->render(function (
+            NotFoundHttpException $e,
+            Request $request,
+        ) {
+            if ($request->is("api/*")) {
+                return response()->json(
+                    [
+                        "status" => "error",
+                        "code" => 404,
+                        "message" => $e->getMessage() ?? "Endpoint not found.",
+                    ],
+                    404,
+                );
             }
         });
 
-        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 403,
-                    'message' => 'Anda tidak memiliki izin.'
-                ], 403);
+        $exceptions->render(function (
+            AccessDeniedHttpException $e,
+            Request $request,
+        ) {
+            if ($request->is("api/*")) {
+                return response()->json(
+                    [
+                        "status" => "error",
+                        "code" => 403,
+                        "message" => "Anda tidak memiliki izin.",
+                    ],
+                    403,
+                );
             }
         });
-        $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
-            if ($request->is('api/*')) {
-                return response()->json([
-                    'status' => 'error',
-                    'code' => 405,
-                    'message' => 'Method not allowed.'
-                ], 405);
+        $exceptions->render(function (
+            MethodNotAllowedHttpException $e,
+            Request $request,
+        ) {
+            if ($request->is("api/*")) {
+                return response()->json(
+                    [
+                        "status" => "error",
+                        "code" => 405,
+                        "message" => "Method not allowed.",
+                    ],
+                    405,
+                );
             }
         });
         $exceptions->render(function (Throwable $e, Request $request) {
-
-            if ($request->is('api/*')) {
+            if ($request->is("api/*")) {
                 $message = match (true) {
-                    $e instanceof QueryException => 'Database error occurred.',
-                    default => app()->environment('production') 
-                        ? 'An error occurred. Please try again later.'
-                        : $e->getMessage(),
+                    $e instanceof QueryException => $e->getMessage(),
+                    default => $e->getMessage(),
                 };
 
-                return response()->json([
-                    'status' => false,
-                    'message' => $message
-                ], 500);
+                return response()->json(
+                    [
+                        "status" => false,
+                        "message" => $message,
+                    ],
+                    500,
+                );
             }
         });
-    })->create();
+    })
+    ->create();

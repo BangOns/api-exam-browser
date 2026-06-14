@@ -23,7 +23,6 @@ class QuestionController extends Controller
     public function index(Request $request)
     {
         $teacher = $request->user()->teacher;
-
         $paginator = $this->questionService->getAllQuestions(
             5,
             $request->query("search", ""),

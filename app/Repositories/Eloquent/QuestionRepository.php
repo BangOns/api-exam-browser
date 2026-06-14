@@ -15,30 +15,29 @@ class QuestionRepository extends BaseRepository
     protected function getWithRelations()
     {
         return [
-            'lesson:id,name,subject_id,class_id',
-            'lesson.subject:id,name',
-            'lesson.class:id,name',
+            "lesson:id,name,subject_id,class_id",
+            "lesson.subject:id,name",
+            "lesson.class:id,name",
         ];
     }
 
     protected function getSelectableColumns(): array
     {
         return [
-            'id',
-            'question',
-            'lesson_id',
-            'type',
-            'options',
-            'correct_answer',
-            'rubric',
-            'max_points',
-            'created_at',
-            'updated_at'
+            "id",
+            "question",
+            "lesson_id",
+            "type",
+            "options",
+            "correct_answer",
+            "rubric",
+            "created_at",
+            "updated_at",
         ];
     }
 
     protected function getSearchColumns(): array
     {
-        return ['question', 'type'];
+        return ["question", "type"];
     }
 }

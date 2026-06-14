@@ -4,11 +4,9 @@ namespace App\Services;
 
 use App\Exceptions\DataNotFound;
 use App\Models\Exam;
-use App\Models\ExamAnswerScoreLog;
 use App\Models\ExamSchedule;
 use App\Models\ExamToken;
 use App\Models\Student;
-use App\Models\StudentExamAnswer;
 use App\Models\StudentExamAttempt;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -249,77 +247,51 @@ class ExamAttemptService
         });
     }
 
-    public function gradeEssay(
+    public function gradeEssayAnswers(
         string $attemptId,
-        string $questionId,
-        int $score,
-        string $gradedBy,
-    ): StudentExamAnswer {
-        $answer = StudentExamAnswer::where(
-            "student_exam_attempt_id",
-            $attemptId,
-        )
-            ->where("question_id", $questionId)
-            ->first();
+        array $answers, // [['question_id' => '...', 'score' => 85], ...]
+    ): StudentExamAttempt {
+        return DB::transaction(function () use ($attemptId, $answers) {
+            $attempt = StudentExamAttempt::with([
+                "exam.questions",
+                "answers.question",
+            ])
+                ->lockForUpdate()
+                ->findOrFail($attemptId);
 
-        if (!$answer) {
-            throw new DataNotFound("Jawaban siswa tidak ditemukan");
-        }
-
-        if ($answer->question->type !== "Essay") {
-            throw new \Exception(
-                "Hanya jawaban essay yang dapat dinilai manual",
-                400,
-            );
-        }
-
-        if ($score < 0 || $score > 100) {
-            throw new \Exception("Score harus antara 0 dan 100", 400);
-        }
-
-        $scoreBefore = $answer->score ?? 0;
-
-        DB::transaction(function () use (
-            $answer,
-            $score,
-            $gradedBy,
-            $attemptId,
-            $questionId,
-            $scoreBefore,
-        ) {
-            $answer->update([
-                "score" => $score,
-                "graded_by" => $gradedBy,
-                "graded_at" => now(),
-            ]);
-
-            if ($scoreBefore !== $score) {
-                ExamAnswerScoreLog::create([
-                    "student_exam_answer_id" => $answer->id,
-                    "attempt_id" => $attemptId,
-                    "question_id" => $questionId,
-                    "graded_by" => $gradedBy,
-                    "score_before" => $scoreBefore,
-                    "score_after" => $score,
-                    "source" => "manual",
-                ]);
+            if ($attempt->status !== self::SUBMITTED) {
+                throw new \Exception("Ujian belum disubmit oleh siswa", 400);
             }
 
-            // ✅ Hanya update pending_essay_count, recalculate ditangani gradeEssayAnswers()
-            $pendingCount = StudentExamAnswer::where(
-                "student_exam_attempt_id",
-                $attemptId,
-            )
+            $examAnswerService = app(ExamAnswerService::class);
+
+            foreach ($answers as $entry) {
+                if (!isset($entry["question_id"], $entry["score"])) {
+                    continue;
+                }
+                $examAnswerService->gradeEssay(
+                    attemptId: $attemptId,
+                    questionId: $entry["question_id"],
+                    score: $entry["score"],
+                    gradedBy: auth()->id(),
+                );
+            }
+
+            // Hitung ulang pending essay
+            $pendingCount = $attempt
+                ->answers()
                 ->whereHas("question", fn($q) => $q->where("type", "Essay"))
                 ->whereNull("graded_by")
                 ->count();
+            // Recalculate jika semua essay sudah dinilai
+            if ($pendingCount === 0) {
+                $this->recalculateTotalScore($attemptId);
+            } else {
+                $attempt->update(["pending_essay_count" => $pendingCount]);
+            }
 
-            StudentExamAttempt::where("id", $attemptId)->update([
-                "pending_essay_count" => $pendingCount,
-            ]);
+            return $attempt->fresh();
         });
-
-        return $answer->fresh();
     }
 
     /**
@@ -332,12 +304,10 @@ class ExamAttemptService
             "answers.question",
             "exam.questions",
         ])->findOrFail($attemptId);
-
         $totalScore = $this->calculateWeightedScore(
             $attempt->answers,
             $attempt->exam,
         );
-
         $attempt->update([
             "total_score" => $totalScore,
             "is_score_final" => true,
@@ -365,7 +335,6 @@ class ExamAttemptService
 
         // Index jawaban siswa by question_id untuk lookup O(1)
         $answersByQuestionId = $answers->keyBy("question_id");
-
         $essayScore = 0;
         if ($essayQuestions->count() > 0) {
             $totalEssay = $essayQuestions->sum(function ($q) use (

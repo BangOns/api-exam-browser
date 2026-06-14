@@ -18,7 +18,6 @@ class Question extends Model
         "options",
         "correct_answer",
         "rubric",
-        // ✅ max_points dihapus — kolom sudah di-drop dari tabel
     ];
 
     protected $casts = [

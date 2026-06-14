@@ -14,11 +14,14 @@ class ExamAnswerResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        // dd($this->studentExamAttempt->student);
         return [
-            "id" => $this->id,
+            "id" => $this->id, // null jika belum dijawab
             "answer" => $this->answer,
             "score" => $this->score,
+            "graded_by" => $this->graded_by,
+            "graded_at" => $this->graded_at,
+            "is_correct" => $this->is_correct,
+            "answered_at" => $this->answered_at,
             "student" => [
                 "id" => $this->studentExamAttempt->student->id,
                 "name" => $this->studentExamAttempt->student->user->full_name,
@@ -36,10 +39,7 @@ class ExamAnswerResource extends JsonResource
                 "options" => $this->question->options,
                 "correct_answer" => $this->question->correct_answer,
                 "rubric" => $this->question->rubric,
-                "max_points" => $this->question->max_points,
             ],
-            "is_correct" => $this->is_correct,
-            "answered_at" => $this->answered_at,
         ];
     }
 }

@@ -25,7 +25,6 @@ class QuestionResource extends JsonResource
                 ? $this->correct_answer
                 : null,
             "rubric" => $this->rubric ? $this->rubric : null,
-            "max_points" => (int) $this->max_points,
             "lesson" => [
                 "id" => $this->lesson_id ?? null,
                 "class" => [

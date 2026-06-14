@@ -22,7 +22,6 @@ class QuestionService
         ?string $teacherId = null,
     ): LengthAwarePaginator {
         $perPage = min($perPage, self::MAX_PER_PAGE);
-
         $query = Question::select(
             "id",
             "question",
@@ -31,11 +30,9 @@ class QuestionService
             "options",
             "correct_answer",
             "rubric",
-            "max_points",
             "created_at",
             "updated_at",
         )->with("lesson");
-
         if ($teacherId) {
             $query->whereHas("lesson", function ($q) use ($teacherId) {
                 $q->where("teacher_id", $teacherId);
@@ -60,7 +57,6 @@ class QuestionService
                 "options",
                 "correct_answer",
                 "rubric",
-                "max_points",
                 "created_at",
                 "updated_at",
             )
