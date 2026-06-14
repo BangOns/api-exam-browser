@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ExamAttempt\EnterExamRequest;
+use App\Http\Requests\ExamAttempt\GradeEssayRequest; // ✅ tambah import
 use App\Http\Requests\ExamAttempt\SubmitExamRequest;
 use App\Http\Resources\ExamAttempt\ExamAttemptEnterResource;
 use App\Http\Resources\ExamAttempt\ExamAttemptResource;
@@ -27,12 +28,14 @@ class ExamAttemptController extends Controller
             $request->search ?? "",
             $examId,
         );
+
         return $this->successResponse(
             ExamAttemptResource::collection($attempts),
             "Berhasil mengambil daftar ujian",
             200,
         );
     }
+
     public function indexByIdTeacher(Request $request, string $examId)
     {
         $teacher = $request->user()->teacher;
@@ -42,6 +45,7 @@ class ExamAttemptController extends Controller
             $examId,
             $teacher->id,
         );
+
         return $this->successResponse(
             ExamAttemptResource::collection($attempts),
             "Berhasil mengambil daftar ujian",
@@ -55,6 +59,7 @@ class ExamAttemptController extends Controller
             if ($request->user()->role !== "student") {
                 throw new \Exception("Hanya siswa yang dapat memasuki ujian");
             }
+
             $studentId = $request->user()->student->id;
             $attempt = $this->examAttemptService->enterExam(
                 $studentId,
@@ -105,6 +110,7 @@ class ExamAttemptController extends Controller
                 $e->getCode() >= 400 && $e->getCode() < 600
                     ? $e->getCode()
                     : 400;
+
             return $this->errorResponse($e->getMessage(), $statusCode);
         } finally {
             if (isset($attempt)) {
@@ -122,13 +128,13 @@ class ExamAttemptController extends Controller
         try {
             $validated = $request->validated();
             $user = $request->user();
+
             if (!$user || !$user->student()) {
                 throw new \Exception("Student tidak ditemukan", 404);
             }
 
-            $idRole = $user->student->id;
             $attempt = $this->examAttemptService->submitExam(
-                $idRole,
+                $user->student->id,
                 $examId,
                 $validated["answers"] ?? [],
             );
@@ -149,27 +155,34 @@ class ExamAttemptController extends Controller
             return $this->errorResponse($e->getMessage(), $statusCode);
         }
     }
-    public function edit(SubmitExamRequest $request, string $examId)
+
+    /**
+     * Guru menilai jawaban essay siswa.
+     */
+    public function edit(GradeEssayRequest $request, string $examId)
     {
+        // ✅ ganti Request → GradeEssayRequest
         try {
-            $validated = $request->validated();
-            $studentId = $request->input("student_id") ?? "";
             $user = $request->user();
+
             if (!$user || $user->role !== "teacher") {
                 throw new \Exception("Akses ditolak", 403);
             }
-            $idRole = $studentId;
-            $attempt = $this->examAttemptService->submitExam(
-                $idRole,
-                $examId,
-                $validated["answers"] ?? [],
+
+            $attempt = $this->examAttemptService->gradeEssayAnswers(
+                attemptId: $request->validated("attempt_id"),
+                answers: $request->validated("answers"),
             );
 
-            $this->activityLogService->log($user, "edit", "Exam Attempt");
+            $this->activityLogService->log(
+                $user,
+                "grade_essay",
+                "Exam Attempt",
+            );
 
             return $this->successResponse(
                 new ExamAttemptEnterResource($attempt),
-                "Ujian berhasil disubmit",
+                "Penilaian essay berhasil disimpan",
                 200,
             );
         } catch (\Exception $e) {

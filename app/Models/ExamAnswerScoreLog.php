@@ -1,32 +1,31 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class StudentExamAnswer extends Model
+class ExamAnswerScoreLog extends Model
 {
-    protected $table = "student_exam_answers";
+    protected $table = "exam_answer_score_logs";
     protected $keyType = "string";
     public $incrementing = false;
 
     protected $fillable = [
-        "student_exam_attempt_id",
+        "id",
+        "student_exam_answer_id",
+        "attempt_id",
         "question_id",
-        "answer",
-        "score",
-        "is_correct",
-        "answered_at",
-        "graded_by", // ✅ tambah
-        "graded_at", // ✅ tambah
+        "graded_by",
+        "score_before",
+        "score_after",
+        "source",
     ];
 
     protected $casts = [
-        "answered_at" => "datetime",
-        "graded_at" => "datetime", // ✅ tambah
-        "score" => "integer", // ✅ tambah agar konsisten
-        "is_correct" => "boolean", // ✅ tambah agar konsisten
+        "score_before" => "integer",
+        "score_after" => "integer",
     ];
 
     protected static function boot()
@@ -39,9 +38,14 @@ class StudentExamAnswer extends Model
         });
     }
 
-    public function studentExamAttempt(): BelongsTo
+    public function studentExamAnswer(): BelongsTo
     {
-        return $this->belongsTo(StudentExamAttempt::class);
+        return $this->belongsTo(StudentExamAnswer::class);
+    }
+
+    public function attempt(): BelongsTo
+    {
+        return $this->belongsTo(StudentExamAttempt::class, "attempt_id");
     }
 
     public function question(): BelongsTo
@@ -49,7 +53,6 @@ class StudentExamAnswer extends Model
         return $this->belongsTo(Question::class);
     }
 
-    // ✅ tambah relasi ke user (guru yang menilai)
     public function gradedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, "graded_by");

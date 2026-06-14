@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Exceptions\DataNotFound;
 use App\Models\Exam;
+use App\Models\ExamAnswerScoreLog;
 use App\Models\ExamSchedule;
 use App\Models\ExamToken;
 use App\Models\Student;
+use App\Models\StudentExamAnswer;
 use App\Models\StudentExamAttempt;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -224,7 +226,7 @@ class ExamAttemptService
             );
 
             // Ambil exam beserta questions untuk basis perhitungan
-            $exam = $attempt->exam->load("questions");
+            $exam = Exam::with("questions")->findOrFail($attempt->exam_id);
 
             // Hitung pending essay (essay yang belum dinilai guru)
             $pendingEssayCount = $exam->questions
@@ -245,6 +247,79 @@ class ExamAttemptService
 
             return $attempt->fresh();
         });
+    }
+
+    public function gradeEssay(
+        string $attemptId,
+        string $questionId,
+        int $score,
+        string $gradedBy,
+    ): StudentExamAnswer {
+        $answer = StudentExamAnswer::where(
+            "student_exam_attempt_id",
+            $attemptId,
+        )
+            ->where("question_id", $questionId)
+            ->first();
+
+        if (!$answer) {
+            throw new DataNotFound("Jawaban siswa tidak ditemukan");
+        }
+
+        if ($answer->question->type !== "Essay") {
+            throw new \Exception(
+                "Hanya jawaban essay yang dapat dinilai manual",
+                400,
+            );
+        }
+
+        if ($score < 0 || $score > 100) {
+            throw new \Exception("Score harus antara 0 dan 100", 400);
+        }
+
+        $scoreBefore = $answer->score ?? 0;
+
+        DB::transaction(function () use (
+            $answer,
+            $score,
+            $gradedBy,
+            $attemptId,
+            $questionId,
+            $scoreBefore,
+        ) {
+            $answer->update([
+                "score" => $score,
+                "graded_by" => $gradedBy,
+                "graded_at" => now(),
+            ]);
+
+            if ($scoreBefore !== $score) {
+                ExamAnswerScoreLog::create([
+                    "student_exam_answer_id" => $answer->id,
+                    "attempt_id" => $attemptId,
+                    "question_id" => $questionId,
+                    "graded_by" => $gradedBy,
+                    "score_before" => $scoreBefore,
+                    "score_after" => $score,
+                    "source" => "manual",
+                ]);
+            }
+
+            // ✅ Hanya update pending_essay_count, recalculate ditangani gradeEssayAnswers()
+            $pendingCount = StudentExamAnswer::where(
+                "student_exam_attempt_id",
+                $attemptId,
+            )
+                ->whereHas("question", fn($q) => $q->where("type", "Essay"))
+                ->whereNull("graded_by")
+                ->count();
+
+            StudentExamAttempt::where("id", $attemptId)->update([
+                "pending_essay_count" => $pendingCount,
+            ]);
+        });
+
+        return $answer->fresh();
     }
 
     /**
@@ -315,6 +390,6 @@ class ExamAttemptService
             $pgScore = ($avgPg * $pgWeight) / 100;
         }
 
-        return round($essayScore + $pgScore, 2);
+        return round($essayScore + $pgScore); // bulatkan ke integer
     }
 }

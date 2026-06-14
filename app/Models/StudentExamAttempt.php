@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -23,18 +22,22 @@ class StudentExamAttempt extends Model
         "total_score",
         "security_config",
         "last_token_used",
+        "is_score_final", // ✅ tambah
+        "pending_essay_count", // ✅ tambah
     ];
 
     protected $casts = [
         "started_at" => "datetime",
         "submitted_at" => "datetime",
         "security_config" => "encrypted:array",
+        "total_score" => "decimal:2",
+        "is_score_final" => "boolean", // ✅ tambah
+        "pending_essay_count" => "integer", // ✅ tambah
     ];
 
     protected static function boot()
     {
         parent::boot();
-
         static::creating(function ($model) {
             if (!$model->id) {
                 $model->id = Str::uuid();
