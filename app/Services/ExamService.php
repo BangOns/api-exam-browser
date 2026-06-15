@@ -101,9 +101,9 @@ class ExamService
             ->when($student?->class_id, function ($q) use ($student) {
                 $q->whereRelation("lesson", "class_id", $student->class_id);
             });
-
         return $query->paginate($perPage);
     }
+
     public function getExamById($id)
     {
         $exam = Exam::query()
@@ -113,15 +113,19 @@ class ExamService
                 "schedules",
                 "tokens",
                 "questions" => function ($query) {
-                    $query->select(
-                        "id",
-                        "question",
-                        "type",
-                        "lesson_id",
-                        "options",
-                        "correct_answer",
-                        "rubric",
-                    );
+                    $query
+                        ->select(
+                            "id",
+                            "question",
+                            "type",
+                            "lesson_id",
+                            "options",
+                            "correct_answer",
+                            "rubric",
+                        )
+                        ->orderByRaw(
+                            "CASE WHEN type = 'multiple_choice' THEN 0 ELSE 1 END",
+                        );
                 },
             ])
             ->select(
@@ -142,6 +146,7 @@ class ExamService
 
         return $exam;
     }
+
     public function createExam(array $data)
     {
         $exam = DB::transaction(function () use ($data) {
